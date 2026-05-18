@@ -1,0 +1,158 @@
+name: SonarQube Scan (Fork PR)
+
+# ----------------------------------------------------------------------------
+# SECURITY MODEL — read before editing.
+#
+# This workflow analyses fork pull requests with SonarCloud while holding the
+# SONAR_TOKEN. The previous design (pull_request_target + checkout of PR HEAD
+# + projectBaseDir pointing at fork-controlled content) was a textbook
+# pwn-request: a fork PR could ship its own sonar-project.properties under the
+# detected base dir and redirect the scanner's sonar.host.url, exfiltrating
+# SONAR_TOKEN to an attacker host. CVE-class. Do not reintroduce that pattern.
+#
+# This workflow is safe because:
+#
+#   1. workflow_run executes against the workflow definition on the DEFAULT
+#      branch, never the PR HEAD. A fork cannot replace this file.
+#   2. The repository is checked out at the BASE commit (master), so the
+#      trusted root sonar-project.properties is what the scanner reads.
+#   3. The fork's coverage report and source archive are downloaded as
+#      ARTIFACTS — treated as untrusted DATA. We never execute anything from
+#      them (no pip/npm install, no shell). The source is only fed to the
+#      scanner as files to analyse.
+#   4. sonar.host.url / sonar.organization / sonar.projectKey are forced on
+#      the scanner CLI. CLI arguments take precedence over any properties
+#      file, so even if the fork smuggled one through it cannot redirect the
+#      scanner's authentication target.
+#   5. PR metadata fields that flow into the scanner CLI (head_ref, base_ref,
+#      pr_number) are validated against strict regexes before use. Untrusted
+#      strings never expand directly inside a `run:` block.
+#
+# If you need to relax any of these constraints, get a security review first.
+# ----------------------------------------------------------------------------
+
+on:
+  workflow_run:
+    workflows: ["Code Quality"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  sonar_fork_pr:
+    runs-on: ubuntu-latest
+    if: >-
+      ${{ github.event.workflow_run.event == 'pull_request'
+          && github.event.workflow_run.conclusion == 'success'
+          && github.event.workflow_run.head_repository.fork == true }}
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout trusted base (master)
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Download fork PR artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        with:
+          name: sonar-fork-pr
+          path: fork-artifact
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Validate fork PR metadata
+        id: meta
+        env:
+          # workflow_run-provided values are trusted (they come from GitHub,
+          # not the fork). Use these for cross-checks.
+          WR_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          WR_HEAD_SHA:  ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+
+          if [ ! -f fork-artifact/pr-meta.json ]; then
+            echo "::error::pr-meta.json missing from fork artifact"
+            exit 1
+          fi
+
+          # Parse with jq, then validate each field with a strict regex
+          # BEFORE writing to GITHUB_OUTPUT. Anything failing validation is
+          # fatal — better to skip the analysis than to feed an attacker
+          # string into the scanner CLI.
+          pr_number=$(jq -r '.pr_number // empty' fork-artifact/pr-meta.json)
+          head_sha=$( jq -r '.head_sha  // empty' fork-artifact/pr-meta.json)
+          head_ref=$( jq -r '.head_ref  // empty' fork-artifact/pr-meta.json)
+          base_sha=$( jq -r '.base_sha  // empty' fork-artifact/pr-meta.json)
+          base_ref=$( jq -r '.base_ref  // empty' fork-artifact/pr-meta.json)
+
+          # PR number must match the one GitHub itself reports for this run.
+          if [ -z "$pr_number" ] || [ "$pr_number" != "$WR_PR_NUMBER" ]; then
+            echo "::error::pr_number from artifact ($pr_number) does not match workflow_run PR ($WR_PR_NUMBER)"
+            exit 1
+          fi
+          # Head SHA must match the one GitHub reports.
+          if [ -z "$head_sha" ] || [ "$head_sha" != "$WR_HEAD_SHA" ]; then
+            echo "::error::head_sha from artifact ($head_sha) does not match workflow_run head ($WR_HEAD_SHA)"
+            exit 1
+          fi
+          # Branch names: git allows a lot, but Sonar only needs something
+          # that round-trips through a CLI arg. Keep it conservative.
+          ref_re='^[A-Za-z0-9._/-]{1,250}$'
+          if ! [[ "$head_ref" =~ $ref_re ]]; then
+            echo "::error::head_ref failed validation: $head_ref"
+            exit 1
+          fi
+          if ! [[ "$base_ref" =~ $ref_re ]]; then
+            echo "::error::base_ref failed validation: $base_ref"
+            exit 1
+          fi
+          sha_re='^[0-9a-f]{40}$'
+          if ! [[ "$base_sha" =~ $sha_re ]]; then
+            echo "::error::base_sha failed validation: $base_sha"
+            exit 1
+          fi
+
+          {
+            echo "pr_number=$pr_number"
+            echo "head_ref=$head_ref"
+            echo "base_ref=$base_ref"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Stage PR sources for analysis
+        run: |
+          set -euo pipefail
+          mkdir -p pr-src
+          if [ -f fork-artifact/pr-source.tar.gz ]; then
+            tar -xzf fork-artifact/pr-source.tar.gz -C pr-src
+          else
+            echo "::warning::pr-source.tar.gz missing; scanner will run with no source overlay"
+          fi
+          if [ -f fork-artifact/coverage.xml ]; then
+            cp fork-artifact/coverage.xml ./coverage.xml
+          else
+            echo "::warning::coverage.xml missing; running scanner without coverage data"
+          fi
+
+      - name: SonarQube Scan (fork PR, trusted base)
+        uses: SonarSource/sonarqube-scan-action@v6.0.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Run from the TRUSTED base checkout so the trusted root
+          # sonar-project.properties is what gets loaded. The fork's source
+          # tree is fed in below via -Dsonar.sources only.
+          projectBaseDir: .
+          args: >-
+            -Dsonar.host.url=https://sonarcloud.io
+            -Dsonar.organization=mitre
+            -Dsonar.projectKey=mitre_caldera
+            -Dsonar.sources=pr-src/app
+            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.pullrequest.key=${{ steps.meta.outputs.pr_number }}
+            -Dsonar.pullrequest.branch=${{ steps.meta.outputs.head_ref }}
+            -Dsonar.pullrequest.base=${{ steps.meta.outputs.base_ref }}

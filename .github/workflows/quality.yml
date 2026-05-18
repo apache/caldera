@@ -6,8 +6,6 @@ on:
       - master
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-  pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 permissions:
@@ -16,7 +14,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request_target'
     permissions:
       contents: read
       pull-requests: read
@@ -68,48 +65,51 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-  sonar_fork_pr:
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.fork }}
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - name: Checkout base repo
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          fetch-depth: 0
-
-      - name: Checkout PR HEAD (fork)
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
-        with:
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          ref: ${{ github.event.pull_request.head.sha }}
-          path: pr
-          fetch-depth: 0
-          submodules: recursive
-
-      - name: Detect Sonar base dir
-        id: detect
+      # ------------------------------------------------------------------
+      # Fork PR analysis is handed off to the trusted .github/workflows/
+      # sonar-fork-pr.yml workflow via workflow_run, which executes against
+      # a TRUSTED base checkout and treats the artifacts uploaded below as
+      # untrusted data only. See SECURITY note in that workflow.
+      # ------------------------------------------------------------------
+      - name: Stage fork PR Sonar artifacts
+        if: ${{ matrix.python-version == '3.13' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true }}
+        env:
+          # Fork-controlled fields. Pass through env vars and jq so they
+          # cannot inject into the shell or the resulting JSON. The trusted
+          # sonar-fork-pr.yml workflow re-validates everything before use.
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA:  ${{ github.event.pull_request.head.sha }}
+          HEAD_REF:  ${{ github.event.pull_request.head.ref }}
+          BASE_SHA:  ${{ github.event.pull_request.base.sha }}
+          BASE_REF:  ${{ github.event.pull_request.base.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
         run: |
           set -euo pipefail
-          if [ -f pr/caldera/sonar-project.properties ]; then
-            echo "base=pr/caldera" >> "$GITHUB_OUTPUT"
-          elif [ -f pr/sonar-project.properties ]; then
-            echo "base=pr" >> "$GITHUB_OUTPUT"
-          else
-            echo "base=pr" >> "$GITHUB_OUTPUT"
+          mkdir -p sonar-fork-pr-artifact
+          if [ -f coverage.xml ]; then
+            cp coverage.xml sonar-fork-pr-artifact/coverage.xml
           fi
+          jq -n \
+            --arg pr_number "$PR_NUMBER" \
+            --arg head_sha  "$HEAD_SHA" \
+            --arg head_ref  "$HEAD_REF" \
+            --arg base_sha  "$BASE_SHA" \
+            --arg base_ref  "$BASE_REF" \
+            --arg head_repo "$HEAD_REPO" \
+            '{pr_number:$pr_number, head_sha:$head_sha, head_ref:$head_ref, base_sha:$base_sha, base_ref:$base_ref, head_repo:$head_repo}' \
+            > sonar-fork-pr-artifact/pr-meta.json
+          tar --exclude='./.git' \
+              --exclude='./node_modules' \
+              --exclude='./plugins/magma/node_modules' \
+              --exclude='./plugins/magma/dist' \
+              --exclude='./sonar-fork-pr-artifact' \
+              -czf sonar-fork-pr-artifact/pr-source.tar.gz ./app ./sonar-project.properties || true
 
-      - name: SonarQube Scan (fork PR)
-        uses: SonarSource/sonarqube-scan-action@v6.0.0
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload fork PR Sonar artifacts
+        if: ${{ matrix.python-version == '3.13' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
-          projectBaseDir: ${{ steps.detect.outputs.base }}
-          args: |
-            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
-            -Dsonar.pullrequest.branch=${{ github.event.pull_request.head.ref }}
-            -Dsonar.pullrequest.base=${{ github.event.pull_request.base.ref }}
+          name: sonar-fork-pr
+          path: sonar-fork-pr-artifact/
+          retention-days: 3
+          if-no-files-found: warn
