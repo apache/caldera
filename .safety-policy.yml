@@ -1,6 +1,0 @@
-# Safety policy file for `safety check`.
-# Required by safety 3.x — the CLI looks for this file in cwd even when
-# --ignore is passed inline. Ignores are kept on the tox command line
-# (see tox.ini [testenv:safety]) so they stay visible in CI output.
-security:
-    ignore-vulnerabilities: {}
