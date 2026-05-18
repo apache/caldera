@@ -74,7 +74,22 @@ class FileSvc(FileServiceInterface, BaseService):
     async def save_file(self, filename, payload, target_dir, encrypt=True, encoding=None):
         if encoding:
             payload = await self._decode_contents(payload, encoding)
-        self._save(os.path.join(target_dir, filename), payload, encrypt)
+        full_path = os.path.join(target_dir, filename)
+        # Containment check — the resolved final path must not escape its parent.
+        # save_file has two legitimate call modes:
+        #   (1) target_dir + basename — sink mode, used by agent contact handlers
+        #       (DNS, FTP, Gist, Slack) that take filename from upload metadata.
+        #   (2) ''  + relative path  — path mode, used by ability/source managers
+        #       that assemble paths from sanitised IDs.
+        # Either mode is broken by a filename containing '..'. Resolving the final
+        # path and checking it stays under the parent rejects both classes with one
+        # check, without needing callers to know which mode they are using.
+        parent = os.path.realpath(target_dir) if target_dir else os.path.realpath(os.getcwd())
+        final = os.path.realpath(full_path)
+        if final != parent and not final.startswith(parent + os.sep):
+            raise ValueError('save_file: path %r escapes parent %r (filename=%r, target_dir=%r)'
+                             % (final, parent, filename, target_dir))
+        self._save(full_path, payload, encrypt)
 
     async def create_exfil_sub_directory(self, dir_name):
         path = os.path.join(self.get_config('exfil_dir'), dir_name)

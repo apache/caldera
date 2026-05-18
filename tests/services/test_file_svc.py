@@ -45,6 +45,26 @@ class TestFileService:
         with open(file_location, "r") as file_contents:
             assert payload.decode("utf-8") == file_contents.read()
 
+    def test_save_file_rejects_path_traversal(self, event_loop, file_svc, tmp_path):
+        # save_file is reachable from the agent contact handlers (DNS, FTP, Gist,
+        # Slack) with an attacker-controlled filename. A '../../...' basename
+        # must NOT be allowed to escape target_dir, regardless of the encryption
+        # setting. Regression test for the unauthenticated file-write primitive
+        # that ended in pickle.loads on the next restart.
+        payload = b'attacker bytes'
+        traversal_attempts = [
+            '../escaped.bin',
+            '../../escaped.bin',
+            '../../../../etc/passwd',
+        ]
+        for evil in traversal_attempts:
+            with pytest.raises(ValueError, match='escapes parent'):
+                event_loop.run_until_complete(
+                    file_svc.save_file(evil, payload, str(tmp_path), encrypt=False)
+                )
+            # And nothing was written outside tmp_path.
+            assert not os.path.exists(os.path.realpath(os.path.join(str(tmp_path), evil)))
+
     def test_create_exfil_sub_directory(self, event_loop, file_svc):
         exfil_dir_name = 'unit-testing-Rocks'
         new_dir = event_loop.run_until_complete(file_svc.create_exfil_sub_directory(exfil_dir_name))
