@@ -45,6 +45,32 @@ class TestFileService:
         with open(file_location, "r") as file_contents:
             assert payload.decode("utf-8") == file_contents.read()
 
+    def test_save_file_rejects_path_traversal(self, event_loop, file_svc, tmp_path):
+        # save_file is reachable from the agent contact handlers (DNS, FTP, Gist,
+        # Slack) with an attacker-controlled filename. A '../../...' basename
+        # must NOT be allowed to escape target_dir, regardless of the encryption
+        # setting. Regression test for the unauthenticated file-write primitive
+        # that ended in pickle.loads on the next restart.
+        payload = b'attacker bytes'
+        # Avoid filesystem-resident paths like /etc/passwd as targets — the
+        # post-condition guard would false-positive on any pre-existing system
+        # file. Use names that cannot pre-exist by accident.
+        traversal_attempts = [
+            '../caldera-traversal-canary-1.bin',
+            '../../caldera-traversal-canary-2.bin',
+            '../../../../tmp/caldera-traversal-canary-3.bin',
+        ]
+        for evil in traversal_attempts:
+            with pytest.raises(ValueError, match='escapes parent'):
+                event_loop.run_until_complete(
+                    file_svc.save_file(evil, payload, str(tmp_path), encrypt=False)
+                )
+            # Defense-in-depth: confirm the canary file the test name reserves
+            # wasn't actually written (proves save_file rejected BEFORE the I/O,
+            # not just that it raised after writing).
+            resolved = os.path.realpath(os.path.join(str(tmp_path), evil))
+            assert not os.path.exists(resolved), 'save_file wrote to %s before raising' % resolved
+
     def test_create_exfil_sub_directory(self, event_loop, file_svc):
         exfil_dir_name = 'unit-testing-Rocks'
         new_dir = event_loop.run_until_complete(file_svc.create_exfil_sub_directory(exfil_dir_name))
