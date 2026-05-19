@@ -16,7 +16,6 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-from app.api.v2.handlers.payload_api import USER_PAYLOAD_ENCRYPTION_FLAG
 from app.service.interfaces.i_file_svc import FileServiceInterface
 from app.utility.base_service import BaseService
 from app.utility.payload_encoder import xor_file, xor_bytes
@@ -30,6 +29,7 @@ ALLOWED_LDFLAG_REGEXES = {
     'http': URL_SANITIZATION_REGEX,
     'socket': re.compile(r'^[\w\-\.:]+$')
 }
+USER_PAYLOAD_ENCRYPTION_FLAG = bytes('%userencryptedpayload%', encoding='utf-8')
 
 
 class FileSvc(FileServiceInterface, BaseService):

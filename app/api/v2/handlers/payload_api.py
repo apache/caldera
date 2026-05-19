@@ -14,8 +14,8 @@ from aiohttp import web
 from app.api.v2.handlers.base_api import BaseApi
 from app.api.v2.schemas.payload_schemas import PayloadQuerySchema, PayloadSchema, PayloadCreateRequestSchema, \
     PayloadDeleteRequestSchema
+from app.service.file_svc import USER_PAYLOAD_ENCRYPTION_FLAG
 
-USER_PAYLOAD_ENCRYPTION_FLAG = bytes('%userencryptedpayload%', encoding='utf-8')
 PAYLOAD_API_LOGGER_NAME = 'payload_api_handler'
 
 
@@ -119,14 +119,14 @@ class PayloadApi(BaseApi):
 
         # Filename Input Validation
         if not file_name:
-            raise web.HTTPBadRequest(reason="File name is required.")
+            return web.HTTPBadRequest(reason="File name is required.")
 
         # Sanitize the filename
         sanitized_filename = self.sanitize_filename(file_name)
 
         # Additional safety checks
         if not sanitized_filename or sanitized_filename in ['.', '..']:
-            raise web.HTTPBadRequest(reason="Invalid file name.")
+            return web.HTTPBadRequest(reason="Invalid file name.")
 
         try:
             safe_path = self.validate_and_canonicalize_path(sanitized_filename)
@@ -134,13 +134,14 @@ class PayloadApi(BaseApi):
             if safe_path_obj.is_symlink():
                 raise ValueError(f"Invalid path: {sanitized_filename} is a symbolic link.")
             os.remove(safe_path_obj)
+            response = web.HTTPNoContent()
         except ValueError as e:
-            raise web.HTTPNotFound(reason=str(e))
+            response = web.HTTPNotFound(reason=str(e))
         except FileNotFoundError:
-            raise web.HTTPNotFound()
+            response = web.HTTPNotFound()
         except PermissionError:
-            raise web.HTTPForbidden(reason="Permission denied.")
-        raise web.HTTPNoContent()
+            response = web.HTTPForbidden(reason="Permission denied.")
+        return response
 
     @classmethod
     async def __generate_file_name_and_path(cls, sanitized_filename: str) -> [str, str]:
