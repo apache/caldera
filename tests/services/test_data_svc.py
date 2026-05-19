@@ -1,5 +1,11 @@
+import pytest
+
+import asyncio
+import copy
 import glob
 import json
+import os
+import shutil
 import logging
 import yaml
 
@@ -9,11 +15,14 @@ from unittest.mock import patch, call
 from app.objects.c_ability import Ability
 from app.objects.c_adversary import Adversary
 from app.objects.c_agent import Agent
+from app.objects.c_objective import Objective
 from app.objects.c_operation import Operation
 from app.objects.c_planner import Planner
 from app.objects.c_plugin import Plugin
+from app.objects.c_source import Source
 from app.objects.secondclass.c_executor import Executor
 from app.service.data_svc import DataService
+from app.service.file_svc import FileSvc
 from app.utility.base_world import BaseWorld
 
 
@@ -78,6 +87,42 @@ extensions:
 
 
 ABILITY_YAMLS = {
+    'TESTV0ABILITYID': [yaml.safe_load('''
+- id: TESTV0ABILITYID
+  name: Account-type Admin Enumerator
+  description: Use PowerView to query the Active Directory server to determine remote admins
+  tactic: discovery
+  technique:
+    attack_id: T1069.002
+    name: "Permission Groups Discovery: Domain Groups"
+  platforms:
+    windows:
+      psh:
+        command: |
+          testcommand
+        parsers:
+          plugins.stockpile.app.parsers.netlocalgroup:
+          - source: remote.host.fqdn
+            edge: has_admin
+            target: domain.user.name
+        payloads:
+        - powerview.ps1
+  singleton: True
+  requirements:
+    - plugins.stockpile.app.requirements.not_exists:
+      - source: remote.host.fqdn
+        edge: has_admin
+    - plugins.stockpile.app.requirements.basic:
+      - source: backup.admin.ability
+        edge: first_failed
+    - plugins.stockpile.app.requirements.basic:
+      - source: domain.user.name
+        edge: has_password
+        target: domain.user.password
+    - plugins.stockpile.app.requirements.reachable:
+      - source: remote.host.fqdn
+        edge: isAccessibleFrom
+''')],
     'plugins/testing/data/discovery/764efa883dda1e11db47671c4a3bbd9e.yml': [yaml.safe_load('''
 ---
 
@@ -150,6 +195,25 @@ def strip_payload_yaml(path):
 
 def strip_ability_yaml(path):
     return ABILITY_YAMLS.get(path, [])
+
+
+def async_mock_return(to_return):
+    mock_future = asyncio.Future()
+    mock_future.set_result(to_return)
+    return mock_future
+
+
+@pytest.fixture
+def dir_to_delete():
+    to_delete = '/tmp/caldera_test_delete_dir'
+    os.makedirs(to_delete)
+    yield to_delete
+
+    if os.path.exists(to_delete):
+        try:
+            shutil.rmtree(to_delete)
+        except OSError:
+            pass
 
 
 class TestDataService:
@@ -307,7 +371,132 @@ class TestDataService:
         }
         mock_apply_config2.assert_called_once_with(name='payloads', config=expected_config_part2)
 
-    @mock.patch.object(logging.Logger, 'warn')
+    @mock.patch.object(BaseWorld, 'strip_yml', wraps=strip_ability_yaml)
+    async def test_load_v0_ability_file(self, mock_strip_yml, data_svc):
+        await data_svc.load_ability_file('TESTV0ABILITYID', data_svc.Access.RED)
+        search_results = await data_svc.locate('abilities', match=dict(ability_id='TESTV0ABILITYID'))
+        assert len(search_results) == 1
+        result = search_results[0]
+        assert result.name == 'Account-type Admin Enumerator'
+        assert result.description == 'Use PowerView to query the Active Directory server to determine remote admins'
+        assert result.tactic == 'discovery'
+        assert result.technique_name == 'Permission Groups Discovery: Domain Groups'
+        assert result.technique_id == 'T1069.002'
+        assert result.singleton
+        result_executor = result.find_executor('psh', 'windows')
+        assert result_executor.command == 'testcommand'
+        assert result_executor.payloads == ['powerview.ps1']
+        assert len(result_executor.parsers) == 1
+        result_parser = result_executor.parsers[0]
+        assert result_parser.unique == 'plugins.stockpile.app.parsers.netlocalgroup'
+        assert len(result_parser.parserconfigs) == 1
+        result_parser_cfg = result_parser.parserconfigs[0]
+        assert result_parser_cfg.source == 'remote.host.fqdn'
+        assert result_parser_cfg.edge == 'has_admin'
+        assert result_parser_cfg.target == 'domain.user.name'
+        assert not result_parser_cfg.custom_parser_vals
+        assert len(result.requirements) == 4
+
+    def test_delete_file(self, dir_to_delete):
+        to_delete = os.path.join(dir_to_delete, 'caldera_test_delete_file')
+        open(to_delete, 'a').close()
+        assert os.path.exists(to_delete)
+        DataService._delete_file(to_delete)
+        assert not os.path.exists(to_delete)
+        DataService._delete_file(to_delete)  # no-op delete
+
+        assert os.path.exists(dir_to_delete)
+        DataService._delete_file(dir_to_delete)
+        assert not os.path.exists(dir_to_delete)
+
+    async def test_destroy(self, data_svc, dir_to_delete):
+        def mock_glob(input):
+            if 'abilities' in input:
+                return ['/tmp/caldera_test_delete_dir/calderadummyfile.txt']
+            else:
+                return []
+
+        with open('/tmp/caldera_test_delete_dir/calderadummyfile.txt', 'w') as input_file:
+            input_file.write('test')
+
+        with mock.patch.object(glob, 'glob', side_effect=mock_glob):
+            with mock.patch.object(os.path, 'join', return_value='/tmp/caldera_test_delete_dir/test.tar.gz'):
+                with mock.patch.object(os, 'mkdir', return_value=True):
+                    await data_svc.destroy()
+        assert not os.path.exists('/tmp/caldera_test_delete_dir/calderadummyfile.txt')
+        assert os.path.exists('/tmp/caldera_test_delete_dir/test.tar.gz')
+
+    @mock.patch.object(os.path, 'exists', return_value=True)
+    async def test_save_and_restore_state(self, mock_exists, data_svc, dir_to_delete, ability):
+        test_abil = ability(ability_id='testsaverestoreabil', name='testsaverestoreabil')
+        await data_svc.store(test_abil)
+        with mock.patch.object(os.path, 'join', return_value='/tmp/caldera_test_delete_dir/object_store'):
+            with mock.patch.object(FileSvc, 'find_file_path', return_value=(None, '/tmp/caldera_test_delete_dir/object_store')):
+                await data_svc.save_state()
+                assert os.path.exists('/tmp/caldera_test_delete_dir/object_store')
+                assert await data_svc.locate('abilities', match=dict(ability_id='testsaverestoreabil'))
+                await data_svc.remove('abilities', match=dict(ability_id='testsaverestoreabil'))
+                assert not await data_svc.locate('abilities', match=dict(ability_id='testsaverestoreabil'))
+                await data_svc.restore_state()
+                assert await data_svc.locate('abilities', match=dict(ability_id='testsaverestoreabil'))
+
+    async def test_search_object(self, data_svc, ability):
+        test_abil = ability(ability_id='tosearchfor', name='testsaverestoreabil', tags=['tag1', 'tag2'])
+        await data_svc.store(test_abil)
+        result = await data_svc.search('tag1', 'abilities')
+        assert len(result) == 1
+        assert result[0] == test_abil
+        result = await data_svc.search('tag2', 'abilities')
+        assert len(result) == 1
+        assert result[0] == test_abil
+        result = await data_svc.search('dne', 'abilities')
+        assert not result
+
+    @mock.patch.object(DataService, '_update_payload_config')
+    @mock.patch.object(DataService, 'create_or_update_everything_adversary')
+    @mock.patch.object(FileSvc, 'add_special_payload')
+    @mock.patch.object(DataService, 'load_yaml_file')
+    @mock.patch.object(DataService, 'load_ability_file')
+    async def test_reload_data(self, mock_load_abil_file, mock_load_yaml_file, mock_add_special_payload, mock_everything_adversary, mock_update_payload_config, data_svc):
+        def _mock_iglob(pathname, *, root_dir=None, dir_fd=None, recursive=False, include_hidden=False):
+            if 'payloads' in pathname:
+                return iter([])
+            elif 'abilities' in pathname:
+                return iter(['mockabilityforplugin.yml'])
+            elif 'objectives' in pathname:
+                return iter(['mockobjectiveforplugin.yml'])
+            elif 'adversaries' in pathname:
+                return iter(['mockadversaryforplugin.yml'])
+            elif 'planners' in pathname:
+                return iter(['mockplannerforplugin.yml'])
+            elif 'sources' in pathname:
+                return iter(['mocksourceforplugin.yml'])
+            elif 'packers' in pathname:
+                return iter([])
+            elif 'data_encoders' in pathname:
+                return iter([])
+            else:
+                return glob.iglob(pathname, root_dir=root_dir, dir_fd=dir_fd, recursive=recursive, include_hidden=include_hidden)
+
+        BaseWorld.apply_config(name='payloads',
+                               config=dict(extensions=dict(mockextension='mockextval')))
+
+        mock_plugin = Plugin(name='mockplugin', description='Mock plugin for unit tests', enabled=True, data_dir='mockplugin/data',
+                             access=data_svc.Access.RED)
+
+        data_svc.ram = copy.deepcopy(data_svc.schema)
+
+        with mock.patch.object(glob, 'iglob', side_effect=_mock_iglob) as mock_iglob:
+            await data_svc.reload_data([mock_plugin])
+            mock_iglob.assert_any_call('mockplugin/data/payloads/*.yml', recursive=False)
+            mock_load_abil_file.assert_any_call('mockabilityforplugin.yml', data_svc.Access.RED)
+            mock_load_yaml_file.assert_any_call(Objective, 'mockobjectiveforplugin.yml', data_svc.Access.RED)
+            mock_load_yaml_file.assert_any_call(Adversary, 'mockadversaryforplugin.yml', data_svc.Access.RED)
+            mock_load_yaml_file.assert_any_call(Planner, 'mockplannerforplugin.yml', data_svc.Access.RED)
+            mock_load_yaml_file.assert_any_call(Source, 'mocksourceforplugin.yml', data_svc.Access.RED)
+            mock_add_special_payload.assert_called_once_with('mockextension', 'mockextval')
+
+    @mock.patch.object(logging.Logger, 'warning')
     @mock.patch.object(BaseWorld, 'strip_yml', wraps=strip_ability_yaml)
     async def test_load_ability_file(self, mock_strip_yml, mock_warn, data_svc):
         want_executors = [

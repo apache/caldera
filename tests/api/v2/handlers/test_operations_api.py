@@ -42,18 +42,24 @@ class TestOperationsApi:
         resp = await api_v2_client.get('/api/v2/operations/999', cookies=api_cookies)
         assert resp.status == HTTPStatus.NOT_FOUND
 
-    async def test_get_operations_summary(self, api_v2_client, api_cookies, test_operation):
-        resp = await api_v2_client.get('/api/v2/operations/summary', cookies=api_cookies)
-        assert resp.status == HTTPStatus.OK
-        operations_list = await resp.json()
-        assert len(operations_list) == 1
-        operation_dict = operations_list[0]
-        assert operation_dict['name'] == test_operation['name']
-        assert operation_dict['id'] == test_operation['id']
-        assert 'agents' in operation_dict
-        assert 'hosts' in operation_dict
-        assert 'chain' not in operation_dict
-        assert 'host_group' not in operation_dict
+    async def test_get_operations_summary(self, api_v2_client, api_cookies, mocker, async_return,
+                                          test_operation):
+        with mocker.patch('app.objects.c_operation.Operation.all_facts') as mock_all_facts:
+            mock_all_facts.return_value = async_return([])
+            resp = await api_v2_client.get('/api/v2/operations/summary', cookies=api_cookies)
+            assert resp.status == HTTPStatus.OK
+            operations_list = await resp.json()
+            assert len(operations_list) == 1
+            operation_dict = operations_list[0]
+            assert operation_dict['name'] == test_operation['name']
+            assert operation_dict['id'] == test_operation['id']
+            assert operation_dict['jitter'] == test_operation['jitter']
+            assert operation_dict['planner']['name'] == test_operation['planner']['name']
+            assert operation_dict['adversary']['name'] == test_operation['adversary']['name']
+            assert 'agents' in operation_dict
+            assert 'hosts' in operation_dict
+            assert 'chain' not in operation_dict
+            assert 'host_group' not in operation_dict
 
     async def test_get_operations_summary_links_with_no_paw_skipped(
             self, api_v2_client, api_cookies, test_operation):

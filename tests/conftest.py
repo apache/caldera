@@ -18,20 +18,7 @@ from aiohttp_apispec import validation_middleware
 from aiohttp import web
 import aiohttp_jinja2
 from pathlib import Path
-from app.api.v2.handlers.agent_api import AgentApi
-from app.api.v2.handlers.ability_api import AbilityApi
-from app.api.v2.handlers.objective_api import ObjectiveApi
-from app.api.v2.handlers.adversary_api import AdversaryApi
-from app.api.v2.handlers.operation_api import OperationApi
-from app.api.v2.handlers.contact_api import ContactApi
-from app.api.v2.handlers.obfuscator_api import ObfuscatorApi
-from app.api.v2.handlers.plugins_api import PluginApi
-from app.api.v2.handlers.fact_source_api import FactSourceApi
-from app.api.v2.handlers.fact_api import FactApi
-from app.api.v2.handlers.planner_api import PlannerApi
-from app.api.v2.handlers.health_api import HealthApi
-from app.api.v2.handlers.schedule_api import ScheduleApi
-from app.api.v2.handlers.payload_api import PayloadApi
+from app.api.v2 import make_app
 from app.objects.c_obfuscator import Obfuscator
 from app.objects.c_objective import Objective
 from app.objects.c_planner import PlannerSchema
@@ -59,8 +46,6 @@ from app.objects.secondclass.c_rule import Rule
 from app.utility.base_object import BaseObject
 from app.utility.base_service import BaseService
 from app.utility.base_world import BaseWorld
-from app.api.v2.responses import json_request_validation_middleware
-from app.api.v2.security import authentication_required_middleware_factory
 from app.api.v2.responses import apispec_request_validation_middleware
 from app.api.rest_api import RestApi
 
@@ -333,33 +318,10 @@ def agent_config():
 
 @pytest.fixture
 async def api_v2_client(aiohttp_client, contact_svc):
-    def make_app(svcs):
-        warnings.filterwarnings(
-            "ignore",
-            message="Multiple schemas resolved to the name"
-        )
-
-        app = web.Application(
-            middlewares=[
-                authentication_required_middleware_factory(svcs['auth_svc']),
-                json_request_validation_middleware
-            ]
-        )
-        AgentApi(svcs).add_routes(app)
-        AbilityApi(svcs).add_routes(app)
-        OperationApi(svcs).add_routes(app)
-        AdversaryApi(svcs).add_routes(app)
-        ContactApi(svcs).add_routes(app)
-        ObjectiveApi(svcs).add_routes(app)
-        ObfuscatorApi(svcs).add_routes(app)
-        PluginApi(svcs).add_routes(app)
-        FactApi(svcs).add_routes(app)
-        FactSourceApi(svcs).add_routes(app)
-        PlannerApi(svcs).add_routes(app)
-        HealthApi(svcs).add_routes(app)
-        ScheduleApi(svcs).add_routes(app)
-        PayloadApi(svcs).add_routes(app)
-        return app
+    warnings.filterwarnings(
+        "ignore",
+        message="Multiple schemas resolved to the name"
+    )
 
     async def initialize():
         with open(Path(__file__).parents[1] / 'conf' / 'default.yml', 'r') as fle:
@@ -386,7 +348,7 @@ async def api_v2_client(aiohttp_client, contact_svc):
         await auth_svc.apply(app_svc.application, auth_svc.get_config('users'))
         await auth_svc.set_login_handlers(services)
 
-        app_svc.register_subapp('/api/v2', make_app(svcs=services))
+        app_svc.register_subapp('/api/v2', make_app(services))
         aiohttp_apispec.setup_aiohttp_apispec(
             app=app_svc.application,
             title='Caldera',

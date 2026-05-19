@@ -1,7 +1,10 @@
 import pytest
+from unittest import mock
+
 from app.objects.c_adversary import Adversary
 from app.objects.secondclass.c_executor import Executor
 from app.objects.secondclass.c_fact import Fact
+from app.service.data_svc import DataService
 from app.utility.base_world import BaseWorld
 
 
@@ -71,3 +74,13 @@ class TestLearningSvc:
         ]
         await learning_svc._store_results(link, facts)
         assert len(link.relationships) == 4
+
+    async def test_build_model(self, learning_svc, ability, executor, data_svc):
+        test_executor = executor(name='sh', platform='linux', command='test command #{var1} #{var2}')
+        test_ability = ability(ability_id='123123', executors=[test_executor])
+        want = set()
+        want.add(frozenset(['var1', 'var2']))
+        learning_svc.model = set()
+        with mock.patch.object(DataService, 'locate', return_value=[test_ability]):
+            await learning_svc.build_model()
+        assert want == learning_svc.model

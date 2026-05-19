@@ -29,3 +29,8 @@ class Variation(BaseObject):
         super().__init__()
         self.description = description
         self._command = self.encode_string(command)
+
+    def __eq__(self, other):
+        if isinstance(other, Variation):
+            return self.description == other.description and self._command == other._command
+        return False

@@ -1,16 +1,20 @@
+import base64
 import os
 from http import HTTPStatus
 from pathlib import Path
+import tempfile
+from unittest import mock
 
 import pytest
 import yaml
-from aiohttp import web
+from aiohttp import web, FormData
 
 from app.api.rest_api import RestApi
 from app.objects.c_agent import Agent
 from app.service.app_svc import AppService
 from app.service.auth_svc import AuthService
 from app.service.data_svc import DataService
+from app.service.file_svc import FileSvc
 from app.service.rest_svc import RestService
 from app.service.interfaces.i_login_handler import LoginHandlerInterface
 from app.utility.base_service import BaseService
@@ -30,6 +34,8 @@ async def aiohttp_client(aiohttp_client):
 
         app_svc = AppService(web.Application())
         _ = DataService()
+        file_svc = FileSvc()
+        file_svc.encrypt_output = False
         _ = RestService()
         auth_svc = AuthService()
         services = app_svc.get_services()
@@ -108,6 +114,135 @@ async def test_invalid_request(aiohttp_client, authorized_cookies, sample_agent)
     assert resp.status == HTTPStatus.BAD_REQUEST
     messages = await resp.json()
     assert messages == dict(sleep_min=['Not a valid integer.'])
+
+
+async def test_command_overwrite_failure(aiohttp_client, authorized_cookies):
+    resp = await aiohttp_client.post('/api/rest',
+                                     cookies=authorized_cookies,
+                                     json=dict(index='configuration',
+                                               prop='requirements',
+                                               value=dict(go=dict(command='this should not get written',
+                                                                  type='installed program',
+                                                                  version='1.11',),
+                                                          python=dict(attr='version',
+                                                                      module='sys',
+                                                                      type='python_module',
+                                                                      version='3.11.0'))))
+
+    assert resp.status == HTTPStatus.BAD_REQUEST
+
+
+async def test_upload_file(aiohttp_client):
+    file_data = bytes([0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef])
+    with tempfile.TemporaryFile(mode='w+b') as tmp_file:
+        tmp_file.write(file_data)
+        tmp_file.flush()
+        tmp_file.seek(0)
+
+        m = mock.mock_open(read_data=file_data)
+        with mock.patch('builtins.open', m):
+            upload_data = FormData()
+            upload_data.add_field('file', tmp_file, filename='testupload')
+            resp = await aiohttp_client.post('/file/upload',
+                                             headers=dict(Directory='testdir'),
+                                             data=upload_data)
+            assert resp.status == HTTPStatus.OK
+            m.assert_called_with('data/payloads/testupload', 'wb')
+            m().write.assert_called_once_with(file_data)
+
+    BaseWorld.set_config('main', 'exfil_dir', 'dummyexfildir')
+    with tempfile.TemporaryFile(mode='w+b') as tmp_file:
+        tmp_file.write(file_data)
+        tmp_file.flush()
+        tmp_file.seek(0)
+
+        m = mock.mock_open(read_data=file_data)
+        with mock.patch.object(os, 'makedirs', return_value=None) as mock_makedirs:
+            with mock.patch('builtins.open', m):
+                upload_data = FormData()
+                upload_data.add_field('file', tmp_file, filename='testupload')
+                resp = await aiohttp_client.post('/file/upload',
+                                                 headers={'X-Request-ID': 'testid'},
+                                                 data=upload_data)
+                assert resp.status == HTTPStatus.OK
+                mock_makedirs.assert_any_call('dummyexfildir/testid')
+                mock_makedirs.assert_called_with('dummyexfildir/testid')
+                m.assert_called_with('dummyexfildir/testid/testupload', 'wb')
+                m().write.assert_called_once_with(file_data)
+
+
+async def test_download_file(aiohttp_client):
+    file_data = bytes([0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef])
+    m = mock.mock_open(read_data=file_data)
+    with mock.patch.object(FileSvc, 'find_file_path', return_value=('testplugin', 'testplugin/payloads/testdownload')) as mock_find_file_path:
+        with mock.patch('builtins.open', m):
+            resp = await aiohttp_client.post('/file/download',
+                                             headers=dict(file='testdownload'))
+            assert resp.status == HTTPStatus.OK
+            m.assert_called_with('testplugin/payloads/testdownload', 'rb')
+            m().read.assert_called_once_with()
+            mock_find_file_path.assert_called_with('testdownload', location='payloads')
+            assert await resp.content.read() == file_data
+            assert resp.headers.get('CONTENT-DISPOSITION') == 'attachment; filename="testdownload"'
+            assert resp.headers.get('FILENAME') == 'testdownload'
+
+    # Test FileNotFound
+    with mock.patch.object(FileSvc, 'get_file') as mock_get_file:
+        mock_get_file.side_effect = FileNotFoundError()
+        resp = await aiohttp_client.post('/file/download',
+                                         headers=dict(file='testdownload'))
+        assert resp.status == HTTPStatus.NOT_FOUND
+        assert await resp.content.read() == b'File not found'
+
+    # Test generic exception
+    with mock.patch.object(FileSvc, 'get_file') as mock_get_file:
+        mock_get_file.side_effect = Exception('Test exception')
+        resp = await aiohttp_client.post('/file/download',
+                                         headers=dict(file='testdownload'))
+        assert resp.status == HTTPStatus.NOT_FOUND
+        assert await resp.content.read() == b'Test exception'
+
+
+async def test_download_exfil_file(aiohttp_client, authorized_cookies):
+    file_data = bytes([0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef])
+    encoded_file_path = base64.b64encode('dummyexfildir/path/testdownload'.encode('ascii')).decode('ascii')
+    bad_encoded_file_path = base64.b64encode('notexfildir/path/testdownload'.encode('ascii')).decode('ascii')
+
+    BaseWorld.set_config('main', 'exfil_dir', 'dummyexfildir')
+    m = mock.mock_open(read_data=file_data)
+    with mock.patch('builtins.open', m):
+        with mock.patch.object(FileSvc, 'find_file_path', return_value=(None, 'dummyexfildir/path/testdownload')):
+            resp = await aiohttp_client.get(f'/file/download_exfil?file={encoded_file_path}', cookies=authorized_cookies)
+            assert resp.status == HTTPStatus.OK
+            m.assert_called_with('dummyexfildir/path/testdownload', 'rb')
+            m().read.assert_called_once_with()
+            assert await resp.content.read() == file_data
+            assert resp.headers.get('CONTENT-DISPOSITION') == 'attachment; filename="testdownload"'
+            assert resp.headers.get('FILENAME') == 'testdownload'
+
+    # Test FileNotFound
+    with mock.patch.object(FileSvc, 'read_file') as mock_get_file:
+        mock_get_file.side_effect = FileNotFoundError()
+        resp = await aiohttp_client.get(f'/file/download_exfil?file={encoded_file_path}', cookies=authorized_cookies)
+        assert resp.status == HTTPStatus.NOT_FOUND
+        assert await resp.content.read() == b'File not found'
+
+    # Test generic exception
+    with mock.patch.object(FileSvc, 'read_file') as mock_get_file:
+        mock_get_file.side_effect = Exception('Test exception')
+        resp = await aiohttp_client.get(f'/file/download_exfil?file={encoded_file_path}', cookies=authorized_cookies)
+        assert resp.status == HTTPStatus.NOT_FOUND
+        assert await resp.content.read() == b'Test exception'
+
+    # Test payload not in exfil dir
+    resp = await aiohttp_client.get(f'/file/download_exfil?file={bad_encoded_file_path}', cookies=authorized_cookies)
+    assert resp.status == HTTPStatus.NOT_FOUND
+    assert await resp.content.read() == b'File not found in exfil dir'
+
+    # Test missing URL parameter
+    resp = await aiohttp_client.get('/file/download_exfil', cookies=authorized_cookies)
+    assert resp.status == HTTPStatus.BAD_REQUEST
+    assert await resp.content.read() == b'A file needs to be specified for download'
 
 
 async def test_custom_rejecting_login_handler(aiohttp_client):

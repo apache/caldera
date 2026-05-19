@@ -136,7 +136,7 @@ class PayloadApi(BaseApi):
             response = web.HTTPNotFound()
         except PermissionError:
             response = web.HTTPForbidden(reason="Permission denied.")
-        return response
+        raise response
 
     @classmethod
     async def __generate_file_name_and_path(cls, sanitized_filename: str) -> [str, str]:

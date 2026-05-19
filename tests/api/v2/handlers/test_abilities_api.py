@@ -100,13 +100,23 @@ class TestAbilitiesApi:
         resp = await api_v2_client.get('/api/v2/abilities/999', cookies=api_cookies)
         assert resp.status == HTTPStatus.NOT_FOUND
 
-    async def test_create_ability(self, api_v2_client, api_cookies, mocker, async_return, new_ability_payload):
+    async def test_create_and_delete_ability(self, api_v2_client, api_cookies, mocker, async_return, new_ability_payload):
+        # Test creation
+        target_ability_id = new_ability_payload.get('ability_id')
         resp = await api_v2_client.post('/api/v2/abilities', cookies=api_cookies, json=new_ability_payload)
         assert resp.status == HTTPStatus.OK
         ability_data = await resp.json()
         assert ability_data == new_ability_payload
         ability_exists = await BaseService.get_service('data_svc').locate('abilities', {'ability_id': '456'})
         assert ability_exists
+        assert os.path.exists(f'data/abilities/collection/{target_ability_id}.yml')
+
+        # Test deletion
+        resp = await api_v2_client.delete(f'/api/v2/abilities/{target_ability_id}', cookies=api_cookies)
+        assert resp.status in (HTTPStatus.OK, HTTPStatus.NO_CONTENT)
+        ability_exists = await BaseService.get_service('data_svc').locate('abilities', {'ability_id': '456'})
+        assert not ability_exists
+        assert not os.path.exists(f'data/abilities/collection/{target_ability_id}.yml')
 
     async def test_unauthorized_create_ability(self, api_v2_client, new_ability_payload):
         resp = await api_v2_client.post('/api/v2/abilities', json=new_ability_payload)

@@ -137,9 +137,9 @@ class RestApi(BaseWorld):
                             ('FILENAME', display_name)])
             return web.Response(body=content, headers=headers)
         except FileNotFoundError:
-            return web.HTTPNotFound(body='File not found')
+            raise web.HTTPNotFound(text='File not found')
         except Exception as e:
-            return web.HTTPNotFound(body=str(e))
+            raise web.HTTPNotFound(text=str(e))
 
     @check_authorization
     async def download_exfil_file(self, request):
@@ -153,20 +153,17 @@ class RestApi(BaseWorld):
                 file = base64.b64decode(request.query.get('file')).decode('ascii')
                 file = os.path.normpath(file)  # normalize path to remove all directory traversal attempts then check for presence in exfil dir
                 if not is_in_exfil_dir(file):
-                    return web.HTTPNotFound(body="File not found in exfil dir")
+                    raise web.HTTPNotFound(text="File not found in exfil dir")
                 filename = file.split(os.sep)[-1]
                 path = os.sep.join(file.split(os.sep)[:-1])
                 _, content = await self.file_svc.read_file(filename, location=path)
                 headers = dict([('CONTENT-DISPOSITION', 'attachment; filename="%s"' % filename),
                                 ('FILENAME', filename)])
                 return web.Response(body=content, headers=headers)
+            except web.HTTPNotFound as e:
+                raise e
             except FileNotFoundError:
-                return web.HTTPNotFound(body='File not found')
+                raise web.HTTPNotFound(text='File not found')
             except Exception as e:
-                return web.HTTPNotFound(body=str(e))
-        return web.HTTPBadRequest(body='A file needs to be specified for download')
-
-    @staticmethod
-    def _request_errors(request):
-        errors = []
-        return errors
+                raise web.HTTPNotFound(text=str(e))
+        raise web.HTTPBadRequest(text='A file needs to be specified for download')

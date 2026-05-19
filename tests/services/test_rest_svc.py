@@ -1,3 +1,4 @@
+import aiohttp
 import base64
 import pytest
 
@@ -390,26 +391,27 @@ class TestRestSvc:
             req = MagicMock()
             req.query = {'file': encoded}
             # Simulate a real aiohttp Request so check_authorization passes the type check
-            from aiohttp.web_request import Request
-            req.__class__ = Request
+            req.__class__ = aiohttp.web_request.Request
             return req
 
         # Sibling directory /tmp/caldera2/evil must be rejected (HTTPNotFound)
         sibling_request = make_request('/tmp/caldera2/evil')
-        sibling_response = event_loop.run_until_complete(
-            rest_api.download_exfil_file(sibling_request)
-        )
-        assert sibling_response.status == 404, (
+        with pytest.raises(aiohttp.web_exceptions.HTTPNotFound) as exc_info:
+            sibling_response = event_loop.run_until_complete(
+                rest_api.download_exfil_file(sibling_request)
+            )
+        assert exc_info.value.args[0] == "Not Found", (
             "Sibling directory /tmp/caldera2/evil must be rejected with 404, got %s" % sibling_response.status
         )
 
         # Path /tmp/calderaevil must also be rejected (starts-with prefix match must require sep)
         prefix_request = make_request('/tmp/calderaevil')
-        prefix_response = event_loop.run_until_complete(
-            rest_api.download_exfil_file(prefix_request)
-        )
-        assert prefix_response.status == 404, (
-            "Sibling path /tmp/calderaevil must be rejected with 404, got %s" % prefix_response.status
+        with pytest.raises(aiohttp.web_exceptions.HTTPNotFound) as exc_info:
+            prefix_response = event_loop.run_until_complete(
+                rest_api.download_exfil_file(prefix_request)
+            )
+        assert exc_info.value.args[0] == "Not Found", (
+            "Sibling directory /tmp/caldera2/evil must be rejected with 404, got %s" % prefix_response.status
         )
 
         # A legitimate path inside exfil_dir must be accepted (file_svc.read_file is called)

@@ -16,7 +16,7 @@ from aiohttp import web
 
 import app.api.v2
 from app import version
-from app.ascii_banner import ASCII_BANNER, no_color, print_rich_banner
+from app.ascii_banner import get_ascii_banner, no_color, print_rich_banner
 from app.api.rest_api import RestApi
 from app.api.v2.responses import apispec_request_validation_middleware
 from app.api.v2.security import pass_option_middleware
@@ -199,7 +199,7 @@ def _get_parser():
         return values.split(",")
 
     parser = argparse.ArgumentParser(
-        description=ASCII_BANNER,
+        description=get_ascii_banner(),
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument(

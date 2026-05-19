@@ -16,8 +16,7 @@ class Contact(BaseWorld):
     async def start(self):
         self.app_svc.application.router.add_route('*', self.get_config('app.contact.html'), self._accept_beacon)
 
-    @template('weather.html')
-    async def _accept_beacon(self, request):
+    async def _beacon_helper(self, request):
         try:
             profile = json.loads(self.decode_bytes(await request.text()))
             profile['paw'] = profile.get('paw')
@@ -30,3 +29,7 @@ class Contact(BaseWorld):
             return dict(instructions=self.encode_string(json.dumps(response)))
         except Exception:
             return dict(instructions=[])
+
+    @template('weather.html')
+    async def _accept_beacon(self, request):
+        return await self._beacon_helper(request)

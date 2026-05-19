@@ -14,7 +14,7 @@ from app.utility.base_world import BaseWorld
 def api_access(func):
     async def process(*args, **kwargs):
         async with aiohttp.ClientSession(headers=dict(Authorization='Bearer {}'.format(args[0].key)),
-                                         connector=aiohttp.TCPConnector(verify_ssl=False)) as session:
+                                         connector=aiohttp.TCPConnector(ssl=False)) as session:
             kwargs['session'] = session
             return await func(*args, **kwargs)
     return process

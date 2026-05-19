@@ -109,4 +109,4 @@ class AbilityApi(BaseObjectApi):
                                      description='HTTP 204 Status Code (No Content)')
     async def delete_ability(self, request: web.Request):
         await self.delete_on_disk_object(request)
-        return web.HTTPNoContent()
+        raise web.HTTPNoContent()

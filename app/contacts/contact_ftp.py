@@ -165,15 +165,12 @@ class FtpHandler(aioftp.Server):
             profile = json.loads(file_bytes.decode())
             agent, instructions = await self.contact_caldera_server(profile)
             paw, contents = await self.create_beacon_response(agent, instructions)
-            self.write_file(paw, 'Response.txt', json.dumps(contents))
+            self.write_file(paw, 'Response.txt', bytes(json.dumps(contents).encode('ascii')))
         elif re.match(r'^Payload\.txt$', split_file_path[-1]):
             profile = json.loads(file_bytes.decode())
             file_path, contents, display_name = await self.get_payload_file(profile)
             if file_path is not None:
-                self.write_file(profile.get('paw'), profile.get('file'), str(contents))
-        elif re.match(r'^Results\.txt$', split_file_path[-1]):
-            profile = json.loads(file_bytes.decode())
-            await self.contact_caldera_server(profile)
+                self.write_file(profile.get('paw'), profile.get('file'), contents)
         else:
             paw = split_file_path[-2]
             filename = split_file_path[-1]
@@ -202,7 +199,7 @@ class FtpHandler(aioftp.Server):
             if not os.path.exists(agent_dir_path):
                 os.makedirs(agent_dir_path)
             file_path = os.path.join(agent_dir_path, file_name)
-            with open(file_path, 'w+') as f:
+            with open(file_path, 'w+b') as f:
                 f.write(contents)
             self.logger.debug('File written to: %s' % agent_dir_path)
         except IOError:

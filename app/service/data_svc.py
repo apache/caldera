@@ -87,7 +87,7 @@ class DataService(DataServiceInterface, BaseService):
         if not os.path.exists(DATA_BACKUP_DIR):
             os.mkdir(DATA_BACKUP_DIR)
 
-        timestamp = datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S')
+        timestamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S')
         tarball_path = os.path.join(DATA_BACKUP_DIR, f'backup-{timestamp}.tar.gz')
 
         with tarfile.open(tarball_path, 'w:gz') as tarball:
@@ -178,8 +178,8 @@ class DataService(DataServiceInterface, BaseService):
                     ab.pop('plugin', plugin)
 
                     if tactic and tactic not in filename:
-                        self.log.warn(f'Tactic for ability={ability_id} is not in the ability file path {filename}.')
-                        self.log.warn('Please check that the ability is labeled with the correct tactic and is in the correct location.')
+                        self.log.warning(f'Tactic for ability={ability_id} is not in the ability file path {filename}.')
+                        self.log.warning('Please check that the ability is labeled with the correct tactic and is in the correct location.')
 
                     await self._create_ability(ability_id=ability_id, name=name, description=description, tactic=tactic,
                                                technique_id=technique_id, technique_name=technique_name,

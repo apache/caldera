@@ -1,20 +1,11 @@
 import os
-from rich import print as rich_print
 
+from unittest import mock
+from unittest.mock import patch
 
-RED = "\33[1m"
-DARK_RED = "\x1b[38;5;1m"
-BLUE = "\33[94m"
-DARK_BLUE = "\x1b[38;5;20m"
-GREEN = "\033[32m"
-YELLOW = "\033[93m"
-PURPLE = "\033[0;35m"
-DARK_PURPLE = "\x1b[38;5;92m"
-CYAN = "\033[36m"
-END = "\033[0m"
+from app.ascii_banner import get_ascii_banner, print_rich_banner
 
-
-_BANNER = """
+WANT_BANNER = """
  ██████╗ █████╗ ██╗     ██████╗ ███████╗██████╗  █████╗
 ██╔════╝██╔══██╗██║     ██╔══██╗██╔════╝██╔══██╗██╔══██╗
 ██║     ███████║██║     ██║  ██║█████╗  ██████╔╝███████║
@@ -24,40 +15,37 @@ _BANNER = """
 """
 
 
-_BANNER_SECTION_1 = "\n\
+WANT_BANNER_SECTION_1 = "\n\
  ██████╗ █████╗ ██╗     ██████╗ ███████╗██████╗  █████╗\n\
 ██╔════╝██╔══██╗██║     ██╔══██╗██╔════╝██╔══██╗██╔══██╗\n\
 "
 
 
-_BANNER_SECTION_2 = "\
+WANT_BANNER_SECTION_2 = "\
 ██║     ███████║██║     ██║  ██║█████╗  ██████╔╝███████║\n\
 ██║     ██╔══██║██║     ██║  ██║██╔══╝  ██╔══██╗██╔══██║\n\
 "
 
 
-_BANNER_SECTION_3 = "\
+WANT_BANNER_SECTION_3 = "\
 ╚██████╗██║  ██║███████╗██████╔╝███████╗██║  ██║██║  ██║\n\
  ╚═════╝╚═╝  ╚═╝╚══════╝╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝\n\
 "
 
 
-def no_color():
-    return int(os.environ.get("NO_COLOR", 0)) == 1
+class TestBanner:
+    @mock.patch.dict(os.environ, {'NO_COLOR': '0'}, clear=True)
+    def test_banner_with_color(self):
+        with patch('app.ascii_banner.rich_print', return_value=None) as mock_rich_print:
+            print_rich_banner()
+        mock_rich_print.assert_called_once_with(f'[blue]{WANT_BANNER_SECTION_1}[/blue][purple]{WANT_BANNER_SECTION_2}[/purple][red]{WANT_BANNER_SECTION_3}[/red]')
 
+        assert get_ascii_banner() == f'\x1b[38;5;20m{WANT_BANNER_SECTION_1}\x1b[38;5;92m{WANT_BANNER_SECTION_2}\x1b[38;5;1m{WANT_BANNER_SECTION_3}\033[0m'
 
-def get_ascii_banner():
-    if no_color():
-        return _BANNER
-    else:
-        return f"{DARK_BLUE}{_BANNER_SECTION_1}{DARK_PURPLE}{_BANNER_SECTION_2}{DARK_RED}{_BANNER_SECTION_3}{END}"
+    @mock.patch.dict(os.environ, {'NO_COLOR': '1'}, clear=True)
+    def test_banner_without_color(self):
+        with patch('app.ascii_banner.rich_print', return_value=None) as mock_rich_print:
+            print_rich_banner()
+        mock_rich_print.assert_called_once_with(f'{WANT_BANNER_SECTION_1}{WANT_BANNER_SECTION_2}{WANT_BANNER_SECTION_3}')
 
-
-def print_rich_banner():
-    """Print banner using Python Rich library"""
-    if no_color():
-        rich_print(f"{_BANNER_SECTION_1}{_BANNER_SECTION_2}{_BANNER_SECTION_3}")
-    else:
-        rich_print(
-            f"[blue]{_BANNER_SECTION_1}[/blue][purple]{_BANNER_SECTION_2}[/purple][red]{_BANNER_SECTION_3}[/red]"
-        )
+        assert get_ascii_banner() == WANT_BANNER

@@ -103,7 +103,7 @@ class FileSvc(FileServiceInterface, BaseService):
         special_chars = {ord(c): '_' for c in r':<>"/\|?*'}
         agent_opid = [(x.name.translate(special_chars), '_', x.start.strftime("%Y-%m-%d_%H%M%SZ"))
                       for x in op_list_filtered if agent_name in [y.paw for y in x.agents]]
-        path = os.path.join((dir_name), ''.join(agent_opid[0]))
+        path = os.path.join((dir_name), ''.join(agent_opid[0])) if agent_opid else dir_name
         if not os.path.exists(path):
             os.makedirs(path)
         return path

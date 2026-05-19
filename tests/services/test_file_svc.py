@@ -1,16 +1,20 @@
 import base64
+import copy
 import json
 import os
 import pytest
+import subprocess
 import yaml
 
 from aiohttp import web
 from base64 import b64encode
 from asyncio import Future
+from unittest import mock
 from unittest.mock import AsyncMock, MagicMock
 
 from app.data_encoders.base64_basic import Base64Encoder
 from app.data_encoders.plain_text import PlainTextEncoder
+from app.utility.base_world import BaseWorld
 from app.utility.file_decryptor import decrypt
 
 
@@ -403,3 +407,31 @@ class TestFileService:
         assert written_data == decoded_content
         os.remove(uploaded_file_path)
         os.rmdir(upload_dir)
+
+    @mock.patch.object(subprocess, 'check_output', return_value=b'mock output')
+    async def test_compile_go(self, mock_check_output, file_svc):
+        test_env = copy.copy(os.environ)
+        test_env['GOARCH'] = 'testarch'
+        test_env['GOOS'] = 'testplatform'
+        test_env['testcflag'] = 'testval'
+        want_args = ['go', 'build', 'testmode', '-ldflags', '-s -w', '-o', 'testoutput', 'testsrc.go']
+        await file_svc.compile_go('testplatform', 'testoutput', 'testsrc.go', arch='testarch',
+                                  cflags='testcflag=testval', buildmode='testmode')
+        mock_check_output.assert_called_once_with(want_args, cwd='.', env=test_env)
+
+    def test_get_payload_name_from_uuid(self, file_svc):
+        BaseWorld.set_config('payloads', 'standard_payloads', {
+            'Akagi64.exe': {
+                'description': 'UACME compiled binary',
+                'id': 'testakagiid'
+            },
+            'wifi.ps1': {
+                'description': 'Wifi manipulation script',
+                'id': 'testwifiid',
+                'obfuscation_name': ['obfuscated_payload.ps1']
+            }
+        })
+        BaseWorld.set_config('payloads', 'special_payloads', {})
+        assert file_svc.get_payload_name_from_uuid('testakagiid') == ('Akagi64.exe', 'Akagi64.exe')
+        assert file_svc.get_payload_name_from_uuid('testwifiid') == ('wifi.ps1', 'obfuscated_payload.ps1')
+        assert file_svc.get_payload_name_from_uuid('DNE') == ('DNE', 'DNE')

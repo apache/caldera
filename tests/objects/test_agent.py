@@ -1,4 +1,5 @@
 from base64 import b64decode
+from unittest import mock
 from datetime import timedelta
 
 from app.objects.c_ability import Ability
@@ -128,6 +129,13 @@ class TestAgent:
         event_loop.run_until_complete(agent.heartbeat_modification(executors=original_executors))
         assert agent.executors == ['cmd']
 
+    def test_heartbeat_modification_executor(self, event_loop):
+        original_executors = ['cmd']
+        new_executors = ['cmd', 'test']
+        agent = Agent(paw='123', sleep_min=2, sleep_max=8, watchdog=0, executors=original_executors, platform='windows')
+        event_loop.run_until_complete(agent.heartbeat_modification(executors=new_executors))
+        assert agent.executors == new_executors
+
     def test_status_and_kill(self, event_loop, mocker, mock_time):
         BaseWorld.set_config(name='agents', prop='untrusted_timer', value=30)
         agent = Agent(paw='123', sleep_min=2, sleep_max=8, watchdog=0, executors=['cmd'], platform='windows')
@@ -185,3 +193,58 @@ class TestAgent:
         stored_agent = agent.store(data_svc.ram)
         assert len(data_svc.ram['agents']) == 1
         assert stored_agent.schema.dump(stored_agent) == agent.schema.dump(agent)
+
+    def test_is_global_variable(self):
+        assert Agent.is_global_variable('payload:thisshoudlreturntrue')
+        assert not Agent.is_global_variable('payload')
+        assert Agent.is_global_variable('server')
+        assert Agent.is_global_variable('group')
+        assert not Agent.is_global_variable('default')
+
+    async def test_get_preferred_executor_empty(self, ability, executor):
+        agent = Agent(paw='123', sleep_min=5, group='red', sleep_max=5, watchdog=2, executors=['cmd'],
+                      platform='windows', trusted=True)
+
+        # No overlap between agent platform/executor and ability platform/executor
+        test_executor = executor(name='sh', platform='linux')
+        test_ability = ability(ability_id='123', executors=[test_executor])
+        assert await agent.get_preferred_executor(test_ability) is None
+
+    async def test_bootstrap(self, ability, executor, data_svc):
+        # Set empty executor list to exit agent.task function immmediately without mocking
+        agent = Agent(paw='123', sleep_min=5, group='red', sleep_max=5, watchdog=0, executors=[],
+                      platform='windows', trusted=True)
+        test_executor = executor(name='sh', platform='linux')
+        test_ability = ability(ability_id='bootstrap-id', executors=[test_executor], name='Test name')
+        await data_svc.store(test_ability)
+        BaseWorld.apply_config(name='agents',
+                               config={'sleep_max': 5,
+                                       'sleep_min': 5,
+                                       'untrusted_timer': 90,
+                                       'watchdog': 0,
+                                       'implant_name': 'splunkd',
+                                       'bootstrap_abilities': ['bootstrap-id']})
+        await agent.bootstrap(data_svc)
+
+        # Test with mock
+        with mock.patch.object(Agent, 'task', return_value=[]) as mock_task:
+            await agent.bootstrap(data_svc)
+            mock_task.assert_called_once_with([test_ability], obfuscator='plain-text')
+
+    async def test_deadman(self, ability, executor, data_svc):
+        agent = Agent(paw='123', sleep_min=5, group='red', sleep_max=5, watchdog=0, executors=[],
+                      platform='windows', trusted=True)
+        test_executor = executor(name='sh', platform='linux')
+        test_ability = ability(ability_id='deadman-id', executors=[test_executor], name='Test name')
+        await data_svc.store(test_ability)
+        BaseWorld.apply_config(name='agents',
+                               config={'sleep_max': 5,
+                                       'sleep_min': 5,
+                                       'untrusted_timer': 90,
+                                       'watchdog': 0,
+                                       'implant_name': 'splunkd',
+                                       'deadman_abilities': ['deadman-id']})
+
+        with mock.patch.object(Agent, 'task', return_value=[]) as mock_task:
+            await agent.deadman(data_svc)
+            mock_task.assert_called_once_with([test_ability], obfuscator='plain-text', deadman=True)
