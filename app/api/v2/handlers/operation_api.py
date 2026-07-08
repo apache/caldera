@@ -1,3 +1,4 @@
+import asyncio
 import json
 import aiohttp_apispec
 
@@ -77,14 +78,16 @@ class OperationApi(BaseObjectApi):
     async def get_operations_summary(self, request: web.Request):
         remove_props = ['chain', 'host_group', 'source', 'visibility']
         operations = await self.get_all_objects(request)
-        operations_mod = []
-        for op in operations:
+
+        async def _enrich(op):
             op['agents'] = self._api_manager.get_agents(op)
             op['hosts'] = await self._api_manager.get_hosts(op)
             for prop in remove_props:
                 op.pop(prop, None)
-            operations_mod.append(op)
-        return web.json_response(operations_mod)
+            return op
+
+        operations_mod = await asyncio.gather(*(_enrich(op) for op in operations))
+        return web.json_response(list(operations_mod))
 
     @aiohttp_apispec.docs(tags=['operations'],
                           summary='Create a new Caldera operation record',
