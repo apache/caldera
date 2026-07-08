@@ -1,3 +1,4 @@
+from app.objects.secondclass.c_fact import Fact
 from app.objects.secondclass.c_link import Link
 from app.service.interfaces.i_planning_svc import PlanningServiceInterface
 from app.utility.base_planning_svc import BasePlanningService
@@ -142,7 +143,8 @@ class PlanningService(PlanningServiceInterface, BasePlanningService):
 
         For an operation and agent combination, create links (that can
         be executed). When no agent is supplied, links for all agents
-        are returned.
+        are returned. Supports both legacy string ability IDs and
+        dict-style steps with per-step metadata in atomic_ordering.
 
         :param operation: Operation to generate links for
         :type operation: Operation
@@ -158,25 +160,56 @@ class PlanningService(PlanningServiceInterface, BasePlanningService):
         :type trim: bool, optional
         :return: a list of links sorted by score and atomic ordering
         """
-        ao = operation.adversary.atomic_ordering
-        abilities = await self.get_service('data_svc') \
-                              .locate('abilities', match=dict(ability_id=tuple(ao)))
+        raw_steps = operation.adversary.atomic_ordering
+        step_entries = []
+        unique_ids = set()
+
+        for idx, step in enumerate(raw_steps):
+            if isinstance(step, str):
+                ability_id = step
+                metadata = {}
+            else:
+                ability_id = step.get('ability_id')
+                metadata = step.get('metadata', {})
+
+            step_entries.append({
+                'step_idx': idx,
+                'ability_id': ability_id,
+                'metadata': metadata,
+            })
+            unique_ids.add(ability_id)
+
+        all_abilities = await self.get_service('data_svc').locate(
+            'abilities', match=dict(ability_id=tuple(unique_ids))
+        )
+        ability_map = {a.ability_id: a for a in all_abilities}
+
+        steps_with_abilities = []
+        for step in step_entries:
+            ability = ability_map.get(step['ability_id'])
+            if not ability:
+                continue
+            steps_with_abilities.append({
+                'step_idx': step['step_idx'],
+                'ability': ability,
+                'metadata': step['metadata'],
+            })
+
         if buckets:
-            # buckets specified - get all links for given buckets,
-            # (still in underlying atomic adversary order)
-            t = []
-            for bucket in buckets:
-                t.extend([ab for ab in abilities for b in ab.buckets if b == bucket])
-            abilities = t
+            steps_with_abilities = [
+                s for s in steps_with_abilities
+                if any(bucket in s['ability'].buckets for bucket in buckets)
+            ]
+
         links = []
         if agent:
-            links.extend(await self.generate_and_trim_links(agent, operation, abilities, trim))
+            links.extend(await self.generate_and_trim_links(agent, operation, steps_with_abilities, trim))
         else:
             agent_links = []
             for agent in operation.agents:
-                agent_links.append(await self.generate_and_trim_links(agent, operation, abilities, trim))
+                agent_links.append(await self.generate_and_trim_links(agent, operation, steps_with_abilities, trim))
             links = await self._remove_links_of_duplicate_singletons(agent_links)
-        self.log.debug('Generated %s usable links' % (len(links)))
+        self.log.debug('Generated %s usable links', len(links))
         return await self.sort_links(links)
 
     async def get_cleanup_links(self, operation, agent=None):
@@ -332,32 +365,90 @@ class PlanningService(PlanningServiceInterface, BasePlanningService):
                                                                      link_status=operation.link_status())
         return agent_cleanup_links
 
-    async def _generate_new_links(self, operation, agent, abilities, link_status):
-        """Generate links with given status
+    async def _generate_new_links(self, operation, agent, steps_with_abilities, link_status):
+        """Generate links with given status, supporting per-step metadata.
+
+        Each entry in steps_with_abilities is a dict with keys:
+            step_idx  - ordinal position in the adversary profile
+            ability   - resolved Ability object
+            metadata  - dict of per-step metadata (may contain executor_facts)
 
         :param operation: Operation to generate links on
         :type operation: Operation
         :param agent: Agent to generate links on
         :type agent: Agent
-        :param agent: Abilities to generate links for
-        :type agent: list(Ability)
+        :param steps_with_abilities: Steps with resolved abilities and metadata
+        :type steps_with_abilities: list(dict)
         :param link_status: Link status, referencing link state dict
         :type link_status: int
         :return: Links for agent
         :rtype: list(Link)
         """
         links = []
-        for ability in await agent.capabilities(abilities):
+        for step in steps_with_abilities:
+            idx = step['step_idx']
+            ability = step['ability']
+            step_meta = step.get('metadata', {})
+
+            supported_abilities = await agent.capabilities([ability])
+            if ability.ability_id not in [a.ability_id for a in supported_abilities]:
+                continue
+
             executor = await agent.get_preferred_executor(ability)
             if not executor:
                 continue
+
             await self._call_ability_plugin_hooks(ability, executor)
-            if executor.command:
-                link = Link.load(dict(command=self.encode_string(executor.test), paw=agent.paw, score=0,
-                                      ability=ability, executor=executor, status=link_status,
-                                      jitter=self.jitter(operation.jitter)))
-                links.append(link)
+
+            # Collect per-step executor_facts if present
+            fact_dicts = []
+            exec_facts = step_meta.get('executor_facts', {}).get(executor.platform, [])
+            for f in exec_facts:
+                try:
+                    fact_dicts.append({f['trait'].strip(): f['value'].strip('" ')})
+                except (KeyError, AttributeError) as e:
+                    self.log.warning('Skipping malformed fact in step %s: %s (%s)', idx, f, e)
+
+            link = Link.load(dict(
+                paw=agent.paw,
+                score=0,
+                ability=ability,
+                executor=executor,
+                status=link_status,
+                jitter=self.jitter(operation.jitter),
+            ))
+            link.step_idx = idx
+
+            if fact_dicts:
+                for fd in fact_dicts:
+                    for trait, value in fd.items():
+                        link.used.append(Fact(trait=trait, value=value, source=operation.id))
+                injected = self._inject_facts(executor.test, fact_dicts)
+            else:
+                injected, _, used = await self._build_single_test_variant(executor.test, [], executor.name)
+                for f in used:
+                    link.used.append(f)
+
+            link.command = self.encode_string(injected)
+            links.append(link)
+
         return links
+
+    @staticmethod
+    def _inject_facts(template, fact_dicts):
+        """Replace #{trait} placeholders in the template using fact dicts.
+
+        :param template: Command template with #{trait} placeholders
+        :type template: str
+        :param fact_dicts: List of {trait: value} dicts
+        :type fact_dicts: list(dict)
+        :return: Template with placeholders replaced
+        :rtype: str
+        """
+        for entry in fact_dicts:
+            for trait, value in entry.items():
+                template = template.replace(f'#{{{trait}}}', value)
+        return template
 
     async def _generate_cleanup_links(self, operation, agent, link_status):
         """Generate cleanup links with given status
