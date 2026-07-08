@@ -125,7 +125,7 @@ class BaseWorld:
 
     @staticmethod
     def is_uuid4(s):
-        if BaseWorld.re_base64.match(s):
+        if BaseWorld.re_base64.fullmatch(s):
             return True
         return False
 
