@@ -258,7 +258,10 @@ class Operation(FirstClassObjectInterface, BaseObject):
             link = [link for link in self.chain if link.id == link_id][0]
             if link.can_ignore():
                 self.add_ignored_link(link.id)
-            member = [member for member in self.agents if member.paw == link.paw][0]
+            members = [member for member in self.agents if member.paw == link.paw]
+            if not members:
+                continue
+            member = members[0]
             while not (link.finish or link.can_ignore()):
                 await asyncio.sleep(5)
                 if not member.trusted:
@@ -293,6 +296,8 @@ class Operation(FirstClassObjectInterface, BaseObject):
         abilities_by_agent = await self._get_all_possible_abilities_by_agent(data_svc)
         skipped_abilities = []
         for agent in self.agents:
+            if agent.paw not in abilities_by_agent:
+                continue
             agent_skipped = defaultdict(dict)
             agent_executors = agent.executors
             agent_ran = set([link.ability.ability_id for link in self.chain if link.paw == agent.paw and link.finish])
@@ -311,12 +316,17 @@ class Operation(FirstClassObjectInterface, BaseObject):
 
     async def report(self, file_svc, data_svc, output=False):
         try:
-            report = dict(name=self.name, host_group=[a.display for a in self.agents],
+            agent_paw_map = {a.paw: a for a in self.agents}
+            chain_paws = {link.paw for link in self.chain}
+            all_paws = set(agent_paw_map.keys()) | chain_paws
+            host_group = [agent_paw_map[p].display if p in agent_paw_map else dict(paw=p)
+                          for p in all_paws]
+            report = dict(name=self.name, host_group=host_group,
                           start=self.start.strftime(self.TIME_FORMAT),
                           steps=[], finish=self.finish, planner=self.planner.name, adversary=self.adversary.display,
                           jitter=self.jitter, objectives=self.objective.display,
                           facts=[f.display for f in await self.all_facts()])
-            agents_steps = {a.paw: {'steps': []} for a in self.agents}
+            agents_steps = {paw: {'steps': []} for paw in all_paws}
             for step in self.chain:
                 step_report = dict(link_id=step.id,
                                    ability_id=step.ability.ability_id,
