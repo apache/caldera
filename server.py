@@ -118,6 +118,7 @@ def run_tasks(services, run_vue_server=False):
         loop.create_task(app_svc.run_scheduler())
         loop.create_task(learning_svc.build_model())
         loop.create_task(app_svc.watch_ability_files())
+        loop.create_task(app_svc.watch_adversary_files())
         loop.run_until_complete(start_server())
         loop.run_until_complete(event_svc.fire_event(exchange="system", queue="ready"))
         loop.run_until_complete(
