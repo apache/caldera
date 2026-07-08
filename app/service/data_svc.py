@@ -47,11 +47,19 @@ DEPRECATION_WARNING_LOAD = "Function deprecated and will be removed in a future 
 
 class DataService(DataServiceInterface, BaseService):
 
+    _INDEXED_FIELDS = {
+        'agents': ['paw'],
+        'abilities': ['ability_id'],
+        'planners': ['name'],
+        'obfuscators': ['name'],
+    }
+
     def __init__(self):
         self.log = self.add_service('data_svc', self)
         self.schema = dict(agents=[], planners=[], adversaries=[], abilities=[], sources=[], operations=[],
                            schedules=[], plugins=[], obfuscators=[], objectives=[], data_encoders=[])
         self.ram = copy.deepcopy(self.schema)
+        self._index = {}  # collection -> field -> {value: [objects]}
 
     @staticmethod
     def _iter_data_files():
@@ -128,14 +136,52 @@ class DataService(DataServiceInterface, BaseService):
     async def reload_data(self, plugins=()):
         await self._load(plugins)
 
+    def _index_object(self, collection, obj):
+        """Index an object by its indexed fields for fast lookup."""
+        indexed_fields = self._INDEXED_FIELDS.get(collection, [])
+        for field in indexed_fields:
+            val = getattr(obj, field, None)
+            if val is not None:
+                if collection not in self._index:
+                    self._index[collection] = {}
+                if field not in self._index[collection]:
+                    self._index[collection][field] = {}
+                if val not in self._index[collection][field]:
+                    self._index[collection][field][val] = []
+                if obj not in self._index[collection][field][val]:
+                    self._index[collection][field][val].append(obj)
+
+    def _remove_from_index(self, collection, obj):
+        """Remove an object from the index."""
+        indexed_fields = self._INDEXED_FIELDS.get(collection, [])
+        for field in indexed_fields:
+            val = getattr(obj, field, None)
+            if val is not None and collection in self._index and field in self._index[collection]:
+                objs = self._index[collection][field].get(val, [])
+                if obj in objs:
+                    objs.remove(obj)
+
     async def store(self, c_object):
         try:
-            return c_object.store(self.ram)
+            result = c_object.store(self.ram)
+            # Index the object for fast lookups
+            for collection, objs in self.ram.items():
+                if result in objs if isinstance(objs, list) else False:
+                    self._index_object(collection, result)
+                    break
+            return result
         except Exception as e:
             self.log.error('[!] can only store first-class objects: %s' % e)
 
     async def locate(self, object_name, match=None):
         try:
+            # Use index for single-key lookups on indexed fields
+            if match and len(match) == 1 and object_name in self._INDEXED_FIELDS:
+                key, val = next(iter(match.items()))
+                if key in self._INDEXED_FIELDS[object_name]:
+                    idx = self._index.get(object_name, {}).get(key, {})
+                    candidates = idx.get(val, [])
+                    return [obj for obj in candidates if obj.match(match)]
             return [obj for obj in self.ram[object_name] if obj.match(match)]
         except Exception as e:
             self.log.error('[!] LOCATE: %s' % e)
