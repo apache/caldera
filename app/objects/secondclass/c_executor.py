@@ -21,6 +21,18 @@ class ExecutorSchema(ma.Schema):
     variations = ma.fields.List(ma.fields.Nested(VariationSchema()))
     additional_info = ma.fields.Dict(keys=ma.fields.String(), values=ma.fields.String())
 
+    @ma.validates_schema
+    def validate_required_executor_fields(self, data, **kwargs):
+        if kwargs.get('partial') is True:
+            return
+
+        errors = {}
+        for field_name in ('name', 'platform'):
+            if not data.get(field_name):
+                errors[field_name] = ['Missing data for required field.']
+        if errors:
+            raise ma.ValidationError(errors)
+
     @ma.post_load
     def build_executor(self, data, **_):
         return Executor(**data)
