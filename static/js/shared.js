@@ -276,7 +276,8 @@ function setInnerHTML(elem, html) {
 
 // TODO: remove this from all individual plugins in future, as close (x) will be in the tab rather than inside the plugins itself
 function removeSection(identifier) {
-    $('#' + identifier).remove();
+    const section = document.getElementById(identifier);
+    if (section) section.remove();
 }
 
 function b64DecodeUnicode(str) { //https://stackoverflow.com/a/30106551
