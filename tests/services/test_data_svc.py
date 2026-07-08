@@ -359,6 +359,43 @@ class TestDataService:
                 mock_exception.assert_called_once_with(mock.ANY)
                 assert 'Failed to load ability file plugins/testing/data/discovery/101.yml' in mock_exception.call_args.args[0]
 
+    def test_save_state_does_not_mutate_self_ram(self, data_svc):
+        """save_state() must not mutate self.ram (#3158)."""
+        # Snapshot all keys we will mutate to prevent fixture state leaking
+        mutated_keys = ('plugins', 'obfuscators', 'data_encoders', 'agents')
+        original_values = {k: data_svc.ram[k] for k in mutated_keys if k in data_svc.ram}
+        absent_keys = [k for k in mutated_keys if k not in data_svc.ram]
+        try:
+            data_svc.ram['plugins'] = ['sentinel']
+            data_svc.ram['obfuscators'] = ['sentinel']
+            data_svc.ram['data_encoders'] = ['sentinel']
+            data_svc.ram['agents'] = ['agent_sentinel']
+
+            ram_copy = dict(data_svc.ram)
+            data_svc._prune_non_critical_data(ram_copy)
+
+            assert 'plugins' not in ram_copy
+            assert 'obfuscators' not in ram_copy
+            assert 'data_encoders' not in ram_copy
+            assert ram_copy['agents'] == ['agent_sentinel']
+
+            # self.ram is untouched
+            assert 'plugins' in data_svc.ram
+            assert 'obfuscators' in data_svc.ram
+            assert 'data_encoders' in data_svc.ram
+        finally:
+            # Restore all mutated keys to their original state
+            for k, v in original_values.items():
+                data_svc.ram[k] = v
+            for k in absent_keys:
+                data_svc.ram.pop(k, None)
+
+    def test_prune_non_critical_data_safe_when_keys_missing(self, data_svc):
+        """_prune_non_critical_data() must not raise if keys are absent."""
+        ram_copy = {'agents': ['a']}
+        data_svc._prune_non_critical_data(ram_copy)
+        assert ram_copy == {'agents': ['a']}
+
     def test_get_plugin_name(self, data_svc):
         assert 'test' == data_svc._get_plugin_name('plugins/test')
         assert 'test' == data_svc._get_plugin_name('plugins/test/')

@@ -96,8 +96,9 @@ class DataService(DataServiceInterface, BaseService):
                 DataService._delete_file(file_path)
 
     async def save_state(self):
-        await self._prune_non_critical_data()
-        await self.get_service('file_svc').save_file('object_store', pickle.dumps(self.ram), 'data')
+        ram_copy = dict(self.ram)
+        self._prune_non_critical_data(ram_copy)
+        await self.get_service('file_svc').save_file('object_store', pickle.dumps(ram_copy), 'data')
 
     async def restore_state(self):
         """
@@ -452,9 +453,24 @@ class DataService(DataServiceInterface, BaseService):
                           access=access, singleton=singleton, plugin=plugin, **kwargs)
         return await self.store(ability)
 
-    async def _prune_non_critical_data(self):
-        self.ram.pop('plugins')
-        self.ram.pop('obfuscators')
+    @staticmethod
+    def _prune_non_critical_data(ram):
+        """Remove runtime-only keys from a ram snapshot before persisting.
+
+        ``plugins``, ``obfuscators``, and ``data_encoders`` are rebuilt from
+        disk/modules on every startup and must not be persisted in the
+        object_store.  Operating on a *copy* of self.ram (rather than
+        self.ram itself) ensures the live in-memory state is never mutated.
+
+        A shallow copy (e.g. ``dict(self.ram)``) is sufficient because this
+        method only removes top-level keys via ``.pop()`` and does not
+        modify nested values.
+
+        :param ram: a shallow copy of self.ram to prune
+        """
+        ram.pop('plugins', None)
+        ram.pop('obfuscators', None)
+        ram.pop('data_encoders', None)
 
     async def _apply_special_extension_hooks(self, special_extensions):
         for k, v in special_extensions.items():
