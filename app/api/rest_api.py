@@ -38,8 +38,8 @@ class RestApi(BaseWorld):
         self.app_svc.application.router.add_route('GET', '/', self.landing)
         self.app_svc.application.router.add_route('POST', '/enter', self.validate_login)
         self.app_svc.application.router.add_route('POST', '/logout', self.logout)
-        # unauthorized API endpoints
-        self.app_svc.application.router.add_route('*', '/file/download', self.download_file)
+        # authenticated file API endpoints
+        self.app_svc.application.router.add_route('GET', '/file/download', self.download_file)
         self.app_svc.application.router.add_route('POST', '/file/upload', self.upload_file)
         # authorized API endpoints
         self.app_svc.application.router.add_route('*', '/api/rest', self.rest_core)
@@ -120,6 +120,7 @@ class RestApi(BaseWorld):
         except Exception as e:
             self.log.error(repr(e), exc_info=True)
 
+    @check_authorization
     async def upload_file(self, request):
         dir_name = request.headers.get('Directory', None)
         if dir_name:
@@ -130,6 +131,7 @@ class RestApi(BaseWorld):
         operation_dir = await self.file_svc.create_exfil_operation_directory(dir_name=saveto_dir, agent_name=agent[-6:])
         return await self.file_svc.save_multipart_file_upload(request, operation_dir)
 
+    @check_authorization
     async def download_file(self, request):
         try:
             payload, content, display_name = await self.file_svc.get_file(request.headers)
