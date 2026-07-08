@@ -250,7 +250,12 @@ class Operation(FirstClassObjectInterface, BaseObject):
 
     async def wait_for_links_completion(self, link_ids):
         """
-        Wait for started links to be completed
+        Wait for started links to be completed.
+
+        Each link is waited on for at most ``base_timeout + link_timeout`` seconds.
+        If that deadline is exceeded the link is marked TIMEOUT so the planner can
+        continue rather than blocking forever (fixes issue #3254).
+
         :param link_ids:
         :return: None
         """
@@ -259,10 +264,27 @@ class Operation(FirstClassObjectInterface, BaseObject):
             if link.can_ignore():
                 self.add_ignored_link(link.id)
             member = [member for member in self.agents if member.paw == link.paw][0]
-            while not (link.finish or link.can_ignore()):
-                await asyncio.sleep(5)
-                if not member.trusted:
-                    break
+            try:
+                await asyncio.wait_for(
+                    self._wait_for_link(link, member),
+                    timeout=self.base_timeout + self.link_timeout,
+                )
+            except asyncio.TimeoutError:
+                ability_id = link.ability.ability_id if link.ability else 'unknown'
+                logging.getLogger('operation').warning(
+                    '[OPERATION] link %s (ability %s) timed out waiting for agent %s; '
+                    'marking as TIMEOUT so operation can continue.',
+                    link.id, ability_id, member.paw,
+                )
+                link.status = link.states['TIMEOUT']
+                link.finish = datetime.now(timezone.utc).strftime(self.TIME_FORMAT)
+
+    async def _wait_for_link(self, link, member):
+        """Poll until *link* finishes, can be ignored, or the agent becomes untrusted."""
+        while not (link.finish or link.can_ignore()):
+            await asyncio.sleep(5)
+            if not member.trusted:
+                break
 
     async def is_closeable(self):
         return await self.is_finished() or self.auto_close
