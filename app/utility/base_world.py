@@ -60,7 +60,9 @@ class BaseWorld:
 
     @staticmethod
     def decode_bytes(s, strip_newlines=True):
-        decoded = b64decode(s).decode('utf-8', errors='ignore')
+        decoded = b64decode(s).decode('utf-8', errors='replace')
+        # Remove surrogate characters (U+D800-U+DFFF) that can break JSON serialization
+        decoded = decoded.encode('utf-8', errors='surrogatepass').decode('utf-8', errors='replace')
         return decoded.replace('\r\n', '').replace('\n', '') if strip_newlines else decoded
 
     @staticmethod

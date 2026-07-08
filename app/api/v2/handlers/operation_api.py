@@ -157,7 +157,7 @@ class OperationApi(BaseObjectApi):
         access = await self.get_request_permissions(request)
         output = await self._read_output_parameter_(request)
         report = await self._api_manager.get_operation_report(operation_id, access, output)
-        return web.json_response(report)
+        return web.json_response(report, dumps=lambda obj: json.dumps(obj, ensure_ascii=True, default=str))
 
     @aiohttp_apispec.docs(tags=['operations'],
                           summary='Get Operation Event Logs',
@@ -179,7 +179,7 @@ class OperationApi(BaseObjectApi):
         access = await self.get_request_permissions(request)
         output = await self._read_output_parameter_(request)
         report = await self._api_manager.get_operation_event_logs(operation_id, access, output)
-        return web.json_response(report)
+        return web.json_response(report, dumps=lambda obj: json.dumps(obj, ensure_ascii=True, default=str))
 
     @aiohttp_apispec.docs(tags=['operations'],
                           summary='Get Links from Operation',

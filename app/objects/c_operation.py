@@ -320,22 +320,26 @@ class Operation(FirstClassObjectInterface, BaseObject):
             for step in self.chain:
                 step_report = dict(link_id=step.id,
                                    ability_id=step.ability.ability_id,
-                                   command=self.decode_bytes(step.command),
-                                   plaintext_command=self.decode_bytes(step.plaintext_command),
+                                   command=self._sanitize_for_json(self.decode_bytes(step.command)),
+                                   plaintext_command=self._sanitize_for_json(self.decode_bytes(step.plaintext_command)),
                                    delegated=step.decide.strftime(self.TIME_FORMAT),
                                    run=step.finish,
                                    status=step.status,
                                    platform=step.executor.platform,
                                    executor=step.executor.name,
                                    pid=step.pid,
-                                   description=step.ability.description,
-                                   name=step.ability.name,
+                                   description=self._sanitize_for_json(step.ability.description),
+                                   name=self._sanitize_for_json(step.ability.name),
                                    attack=dict(tactic=step.ability.tactic,
-                                               technique_name=step.ability.technique_name,
+                                               technique_name=self._sanitize_for_json(step.ability.technique_name),
                                                technique_id=step.ability.technique_id))
                 if output and step.output:
-                    results = self.decode_bytes(file_svc.read_result_file(step.unique))
-                    step_report['output'] = json.loads(results.replace('\\r\\n', '').replace('\\n', ''))
+                    try:
+                        results = self.decode_bytes(file_svc.read_result_file(step.unique))
+                        step_report['output'] = json.loads(results.replace('\\r\\n', '').replace('\\n', ''))
+                    except Exception:
+                        step_report['output'] = dict(stdout=self._sanitize_for_json(results if 'results' in dir() else ''),
+                                                     stderr='', exit_code='')
                 if step.agent_reported_time:
                     step_report['agent_reported_time'] = step.agent_reported_time.strftime(self.TIME_FORMAT)
                 agents_steps.setdefault(step.paw, {'steps': []})['steps'].append(step_report)
@@ -348,8 +352,16 @@ class Operation(FirstClassObjectInterface, BaseObject):
 
     async def event_logs(self, file_svc, data_svc, output=False):
         # Ignore discarded / high visibility links that did not actually run.
-        return [await self._convert_link_to_event_log(step, file_svc, data_svc, output=output) for step in self.chain
-                if not step.can_ignore()]
+        event_logs = []
+        for step in self.chain:
+            if step.can_ignore():
+                continue
+            try:
+                event_logs.append(await self._convert_link_to_event_log(step, file_svc, data_svc, output=output))
+            except Exception:
+                logging.warning('Error converting link %s to event log for operation %s, skipping',
+                                step.id, self.name, exc_info=True)
+        return event_logs
 
     async def cede_control_to_planner(self, services):
         planner = await self._get_planning_module(services)
@@ -376,7 +388,7 @@ class Operation(FirstClassObjectInterface, BaseObject):
         logging.debug('Wrote event logs for operation %s to disk at %s/%s' % (self.name, event_logs_dir, file_name))
 
     async def _write_logs_to_disk(self, logs, file_name, dest_dir, file_svc):
-        logs_dumps = json.dumps(logs) + os.linesep
+        logs_dumps = json.dumps(logs, ensure_ascii=True, default=str) + os.linesep
         await file_svc.save_file(file_name, logs_dumps.encode(), dest_dir, encrypt=False)
 
     async def _load_objective(self, data_svc):
@@ -386,8 +398,8 @@ class Operation(FirstClassObjectInterface, BaseObject):
         self.objective = deepcopy(obj[0])
 
     async def _convert_link_to_event_log(self, link, file_svc, data_svc, output=False):
-        event_dict = dict(command=self.decode_bytes(link.command),
-                          plaintext_command=self.decode_bytes(link.plaintext_command),
+        event_dict = dict(command=self._sanitize_for_json(self.decode_bytes(link.command)),
+                          plaintext_command=self._sanitize_for_json(self.decode_bytes(link.plaintext_command)),
                           delegated_timestamp=link.decide.strftime(self.TIME_FORMAT),
                           collected_timestamp=link.collect.strftime(self.TIME_FORMAT) if link.collect else None,
                           finished_timestamp=link.finish,
@@ -400,8 +412,12 @@ class Operation(FirstClassObjectInterface, BaseObject):
                           operation_metadata=self._get_operation_metadata_for_event_log(),
                           attack_metadata=self._get_attack_metadata_for_event_log(link.ability))
         if output and link.output:
-            results = self.decode_bytes(file_svc.read_result_file(link.unique))
-            event_dict['output'] = json.loads(results.replace('\\r\\n', '').replace('\\n', ''))
+            try:
+                results = self.decode_bytes(file_svc.read_result_file(link.unique))
+                event_dict['output'] = json.loads(results.replace('\\r\\n', '').replace('\\n', ''))
+            except Exception:
+                event_dict['output'] = dict(stdout=self._sanitize_for_json(results if 'results' in dir() else ''),
+                                            stderr='', exit_code='')
         if link.agent_reported_time:
             event_dict['agent_reported_time'] = link.agent_reported_time.strftime(self.TIME_FORMAT)
         return event_dict
@@ -533,10 +549,32 @@ class Operation(FirstClassObjectInterface, BaseObject):
             return dict(reason='Other', reason_id=self.Reason.OTHER.value,
                         ability_id=ability.ability_id, ability_name=ability.name)
 
+    @staticmethod
+    def _sanitize_for_json(s):
+        """Remove characters that are problematic for JSON serialization.
+
+        Strips surrogate characters, null bytes, and other non-serializable
+        unicode from strings to ensure they can always be safely passed to
+        json.dumps without raising encoding errors.
+        """
+        if not isinstance(s, str):
+            return s
+        try:
+            # Round-trip through utf-8 to normalize surrogates and bad chars
+            sanitized = s.encode('utf-8', errors='surrogatepass').decode('utf-8', errors='replace')
+            # Strip null bytes and other control characters (except tab, newline, carriage return)
+            sanitized = ''.join(c if c in ('\t', '\n', '\r') or (c >= ' ' or ord(c) > 127) else '\ufffd' for c in sanitized)
+            # Final verification: ensure json.dumps won't choke
+            json.dumps(sanitized)
+            return sanitized
+        except Exception:
+            # Last resort: ASCII-only representation
+            return s.encode('ascii', errors='replace').decode('ascii')
+
     def _get_operation_metadata_for_event_log(self):
-        return dict(operation_name=self.name,
+        return dict(operation_name=self._sanitize_for_json(self.name),
                     operation_start=self.start.strftime(self.TIME_FORMAT),
-                    operation_adversary=self.adversary.name)
+                    operation_adversary=self._sanitize_for_json(self.adversary.name))
 
     def _emit_state_change_event(self, from_state, to_state):
         event_svc = BaseService.get_service('event_svc')
@@ -556,13 +594,13 @@ class Operation(FirstClassObjectInterface, BaseObject):
     @staticmethod
     def _get_ability_metadata_for_event_log(ability):
         return dict(ability_id=ability.ability_id,
-                    ability_name=ability.name,
-                    ability_description=ability.description)
+                    ability_name=Operation._sanitize_for_json(ability.name),
+                    ability_description=Operation._sanitize_for_json(ability.description))
 
     @staticmethod
     def _get_attack_metadata_for_event_log(ability):
         return dict(tactic=ability.tactic,
-                    technique_name=ability.technique_name,
+                    technique_name=Operation._sanitize_for_json(ability.technique_name),
                     technique_id=ability.technique_id)
 
     @staticmethod
