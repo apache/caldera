@@ -1,10 +1,35 @@
 import abc
 import json
+import logging
 
 from aiohttp import web
 
 from app.api.v2.handlers.base_api import BaseApi
 from app.api.v2.responses import JsonHttpBadRequest, JsonHttpForbidden, JsonHttpNotFound
+
+_schema_warning_logger = logging.getLogger('caldera.schema')
+
+
+def load_schema_with_warning(schema, data):
+    """Load data through a schema and warn if unknown fields are silently dropped."""
+    result = schema.load(data)
+    if isinstance(data, dict):
+        unknown_fields = set(data.keys()) - set(schema.fields.keys())
+        if unknown_fields:
+            # Cap logged names to avoid log-noise and limit information leakage
+            # when clients supply many or very long unknown keys.
+            _MAX_LOG_FIELDS = 5
+            _MAX_KEY_LEN = 64
+            logged = sorted(
+                k[:_MAX_KEY_LEN] for k in list(unknown_fields)[:_MAX_LOG_FIELDS]
+            )
+            omitted = max(0, len(unknown_fields) - _MAX_LOG_FIELDS)
+            suffix = f' (and {omitted} more)' if omitted else ''
+            _schema_warning_logger.warning(
+                'Schema [%s] silently dropped unknown fields: %s%s',
+                schema.__class__.__name__, logged, suffix
+            )
+    return result
 
 
 class BaseObjectApi(BaseApi):
