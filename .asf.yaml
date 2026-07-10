@@ -1,0 +1,63 @@
+# .asf.yaml — Apache Infra self-service config for github.com/apache/caldera
+# Reference: https://github.com/apache/infrastructure-asfyaml  ·  https://infra.apache.org/asf-yaml.html
+# This file lives at the repo ROOT and its `notifications:` block ONLY takes effect on the
+# DEFAULT branch (master). Repo metadata/features (github:) are not branch-specific.
+
+# --- REQUIRED IN PRACTICE: route GitHub activity to the archived ASF mailing lists -----------------
+# Podling governance expects development to be visible/archived on-list. Caldera's real lists are
+# dev@/users@/commits@/private@caldera.apache.org (no dedicated issues@/notifications@ list yet), so
+# commit traffic -> commits@ and issue/PR traffic -> dev@ (request a notifications@ list from Infra
+# later if dev@ gets too noisy).
+notifications:
+  commits:      commits@caldera.apache.org
+  issues:       dev@caldera.apache.org
+  pullrequests: dev@caldera.apache.org
+  # jobs: dev@caldera.apache.org        # GitHub Actions build status — enable if the project wants CI failures on-list
+  # jira_options: link label comment    # only if Caldera adopts ASF Jira; it uses GitHub Issues, so omitted
+
+# --- RECOMMENDED: repo metadata, features, and merge policy ----------------------------------------
+github:
+  description: "Automated Adversary Emulation Platform"
+  homepage: https://caldera.apache.org/       # update from the old caldera.mitre.org
+  # NOTE: `labels:` REPLACES the repo's GitHub topics wholesale — keep the list intentional.
+  labels:
+    - adversary-emulation
+    - security-automation
+    - red-team
+    - mitre-attack
+    - cybersecurity
+    - security-testing
+    - caldera
+
+  features:
+    issues: true
+    wiki: true
+    projects: false
+    discussions: true
+
+  # Caldera merges via squash today; squash-only keeps master history linear.
+  enabled_merge_buttons:
+    squash: true
+    merge: false
+    rebase: false
+
+  pull_requests:
+    del_branch_on_merge: true     # tidy: delete the source branch after merge
+    allow_auto_merge: false
+    allow_update_branch: true
+
+  dependabot_alerts: true
+  dependabot_updates: false
+
+  # --- OPTIONAL self-serve branch protection (enable once the project agrees on required checks) ----
+  # protected_branches:
+  #   master:
+  #     required_pull_request_reviews:
+  #       required_approving_review_count: 1
+  #       dismiss_stale_reviews: true
+  #     required_status_checks:
+  #       strict: true
+  #       contexts:
+  #         - <exact CI check name, e.g. the quality.yml job>
+  #     required_conversation_resolution: true
+  #     # required_signatures: true    # only if all committers sign commits — can block merges otherwise
