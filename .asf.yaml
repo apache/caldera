@@ -14,7 +14,7 @@ notifications:
   pullrequests: dev@caldera.apache.org
   # jobs: dev@caldera.apache.org        # GitHub Actions build status — enable if the project wants CI failures on-list
   # jira_options: link label comment    # only if Caldera adopts ASF Jira; it uses GitHub Issues, so omitted
-
+  
 # --- RECOMMENDED: repo metadata, features, and merge policy ----------------------------------------
 github:
   description: "Automated Adversary Emulation Platform"
@@ -62,3 +62,7 @@ github:
            - Security Checks
   #     required_conversation_resolution: true
   #     # required_signatures: true    # only if all committers sign commits — can block merges otherwise
+  copilot_code_review:
+    enabled: true
+    review_drafts: false
+    review_on_push: true
