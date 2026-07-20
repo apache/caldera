@@ -60,7 +60,7 @@ github:
          contexts:
            - Code Quality
            - Security Checks
-  #     required_conversation_resolution: true
+       required_conversation_resolution: true
   #     # required_signatures: true    # only if all committers sign commits — can block merges otherwise
   copilot_code_review:
     enabled: true
