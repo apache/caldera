@@ -50,14 +50,15 @@ github:
   dependabot_updates: false
 
   # --- OPTIONAL self-serve branch protection (enable once the project agrees on required checks) ----
-  # protected_branches:
-  #   master:
-  #     required_pull_request_reviews:
-  #       required_approving_review_count: 1
-  #       dismiss_stale_reviews: true
-  #     required_status_checks:
-  #       strict: true
-  #       contexts:
-  #         - <exact CI check name, e.g. the quality.yml job>
+  protected_branches:
+     master:
+       required_pull_request_reviews:
+         required_approving_review_count: 1
+         dismiss_stale_reviews: true
+       required_status_checks:
+         strict: true
+         contexts:
+           - Code Quality
+           - Security Checks
   #     required_conversation_resolution: true
   #     # required_signatures: true    # only if all committers sign commits — can block merges otherwise
