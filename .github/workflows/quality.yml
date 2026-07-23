@@ -59,7 +59,10 @@ jobs:
         run: tox
 
       - name: SonarQube Scan
-        if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false) }}
+        # Dependabot-authored PR runs receive no repository secrets, so SONAR_TOKEN is
+        # empty and the scan can only fail; skip it there. The merged result is still
+        # scanned by the push-event run on master.
+        if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false && github.actor != 'dependabot[bot]') }}
         uses: SonarSource/sonarqube-scan-action@713881670b6b3676cda39549040e2d88c70d582e  # v8.2.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
