@@ -15,7 +15,7 @@ marshmallow==3.26.2
 dirhash==0.2.1
 marshmallow-enum==1.5.1
 ldap3==2.9.1
-pyasn1==0.6.3
+pyasn1==0.6.4
 reportlab==4.0.4  # debrief
 rich==13.7.0
 lxml==6.1.0  # debrief
@@ -26,4 +26,4 @@ asyncssh==2.20.0
 aioftp==0.27.2
 packaging==23.2
 croniter~=3.0.3
-setuptools==78.1.1
+setuptools==83.0.0
