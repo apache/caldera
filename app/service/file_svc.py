@@ -137,8 +137,9 @@ class FileSvc(FileServiceInterface, BaseService):
                     self.log.warning('Invalid filename rejected: %r', field.filename)
                     raise web.HTTPBadRequest(reason='Invalid filename: disallowed characters or path traversal')
                 _, filename = os.path.split(field.filename)
+                encoding = await self.get_file_encoding(headers)
                 await self.save_file(filename, bytes(await field.read()), target_dir,
-                                     encrypt=encrypt, encoding=headers.get('x-file-encoding'))
+                                     encrypt=encrypt, encoding=encoding)
                 self.log.debug('Uploaded file %s/%s' % (target_dir, filename))
             return web.Response()
         except web.HTTPException:
@@ -334,8 +335,28 @@ class FileSvc(FileServiceInterface, BaseService):
         except Exception as e:
             self.log.error('Error loading extension handler=%s, %s' % (payload, e))
 
+    async def get_file_encoding(self, headers):
+        """Resolve the file encoding for a request.
+
+        Resolution order:
+        1. x-link-id header — look up the link in any active operation and return its
+           ``file_encoding`` attribute when set.
+        2. x-file-encoding header — honour the per-request encoding value.
+        3. Fall back to ``None`` (no encoding applied).
+
+        :param headers: A headers mapping (e.g. CIMultiDict or plain dict).
+        :return: Encoding name string, or ``None``.
+        """
+        link_id = headers.get('x-link-id')
+        if link_id and self.data_svc:
+            for op in await self.data_svc.locate('operations'):
+                for link in op.chain:
+                    if link.id == link_id and link.file_encoding is not None:
+                        return link.file_encoding
+        return headers.get('x-file-encoding')
+
     async def _perform_data_encoding(self, headers, contents):
-        requested_encoding = headers.get('x-file-encoding')
+        requested_encoding = await self.get_file_encoding(headers)
         if requested_encoding:
             return await self._encode_contents(contents, requested_encoding)
         return contents
