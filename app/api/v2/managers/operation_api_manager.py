@@ -98,11 +98,11 @@ class OperationApiManager(BaseApiManager):
         agent = await self.get_agent(operation, data)
         if data['executor']['name'] not in agent.executors:
             raise JsonHttpBadRequest(f'Agent {agent.paw} missing specified executor')
-        encoded_command = self._encode_string(agent.replace(self._encode_string(data['executor']['command']),
-                                              file_svc=self.services['file_svc']))
         executor = self.build_executor(data=data.pop('executor', {}), agent=agent)
         ability = self.build_ability(data=data.pop('ability', {}), executor=executor)
         await self._call_ability_plugin_hooks(ability, executor)
+        encoded_command = self._encode_string(agent.replace(self._encode_string(executor.command),
+                                              file_svc=self.services['file_svc']))
         link = Link.load(dict(command=encoded_command, plaintext_command=encoded_command, paw=agent.paw, ability=ability, executor=executor,
                               status=operation.link_status(), score=data.get('score', 0), jitter=data.get('jitter', 0),
                               cleanup=data.get('cleanup', 0), pin=data.get('pin', 0),
@@ -174,10 +174,9 @@ class OperationApiManager(BaseApiManager):
 
     async def _call_ability_plugin_hooks(self, ability, executor):
         """Calls any plugin hooks (at runtime) that exist for the ability and executor."""
-        if (hasattr(executor, 'HOOKS') and executor.HOOKS and
-                hasattr(executor, 'language') and executor.language and
-                executor.language in executor.HOOKS):
-            await executor.HOOKS[executor.language](ability, executor)
+        if hasattr(executor, 'HOOKS') and executor.HOOKS:
+            for fcall in executor.HOOKS.values():
+                await fcall(ability, executor)
 
     async def validate_operation_state(self, data: dict, existing: Operation = None):
         if not existing:
