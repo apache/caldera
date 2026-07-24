@@ -12,6 +12,7 @@ notifications:
   commits:      commits@caldera.apache.org
   issues:       dev@caldera.apache.org
   pullrequests: dev@caldera.apache.org
+  discussions:  dev@caldera.apache.org   # required for github.features.discussions to be enabled
   # jobs: dev@caldera.apache.org        # GitHub Actions build status — enable if the project wants CI failures on-list
   # jira_options: link label comment    # only if Caldera adopts ASF Jira; it uses GitHub Issues, so omitted
   
@@ -49,7 +50,7 @@ github:
   dependabot_alerts: true
   dependabot_updates: false
 
-  # --- OPTIONAL self-serve branch protection (enable once the project agrees on required checks) ----
+  # --- Branch protection: 1 approving review + green CI required to merge to master -----------------
   protected_branches:
      master:
        required_pull_request_reviews:
@@ -57,9 +58,14 @@ github:
          dismiss_stale_reviews: true
        required_status_checks:
          strict: true
+         # Contexts must be check-run (job) names as reported to GitHub, not workflow names.
          contexts:
-           - Code Quality
-           - Security Checks
+           - "build (3.10.9, py310,style,coverage-ci)"
+           - "build (3.11, py311,style,coverage-ci)"
+           - "build (3.12, py312,style,coverage-ci)"
+           - "build (3.13, py313,style,coverage-ci)"
+           - "build (3.13, safety)"
+           - "build (3.13, bandit)"
        required_conversation_resolution: true
   #     # required_signatures: true    # only if all committers sign commits — can block merges otherwise
   copilot_code_review:
