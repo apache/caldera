@@ -1,0 +1,8 @@
+---
+name: GateProve
+description: Deterministic Gate/Prove safety boundary and hash-chained action ledger for Caldera operations.
+enabled: true
+prove_token: ""
+ledger_path: "artifacts/caldera_action_ledger.jsonl"
+kill_switch: false
+simulation_default_for_destructive: true
