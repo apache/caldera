@@ -15,12 +15,21 @@ When running automated adversary emulation against enterprise or staging infrast
 6. **Generated Ability Manifest**: AI-generated abilities fail closed unless they include parsers, cleanup, bounded scope, generator/model provenance, and a matching digest over execution-relevant fields.
 7. **Central Dispatch Enforcement**: `Operation.apply()` evaluates every planner, REST, scheduled, and direct link through GateProve. Denied or simulation-only links are retained as discarded audit records but never become executable agent instructions.
 8. **Operation Attestation**: Completed operations can emit an integrity-protected evidence bundle containing input provenance, target and command digests, gate decisions, cleanup state, detection outcomes, and the ledger root without disclosing command contents.
+9. **Operation Trust Contract**: A versioned, digest-protected operation intent binds an autonomous planner's inputs and objective to the exact ability manifests, range targets, privilege ceiling, and expiration accepted for dispatch.
 
 ## AI-generated ability contract
 
 Call `evaluate_ability` with both `ability_manifest` and `provenance` before dispatching content produced by an LLM ability factory. GateProve validates that the ability is attributable, bounded, reversible, and unchanged since review. A missing manifest field or mismatched digest produces a `deny` decision and a ledger receipt containing the validation errors.
 
 Required scope fields are `targets`, `expires_at`, and a positive `max_executions`. Required provenance fields are `generator`, `model`, `created_at`, and `content_hash`; compute the latter with `ability_content_hash` from `app/ability_manifest.py`.
+
+Machine-readable contracts are published in `schemas/ability-manifest.schema.json` and `schemas/operation-intent.schema.json`.
+
+## MITRE MCP trust contract
+
+An autonomous planner must submit an `OperationIntent` through `register_operation_intent()` before dispatch. GateProve validates and records the intent, then revalidates it at every link dispatch. Each link must target an asset named by the intent and carry an `AbilityManifest` whose deterministic digest exactly matches the intent's ability reference. Expired, modified, unlisted, or out-of-range work fails closed and receives a hash-chained denial receipt.
+
+The boundary is intentionally transport-neutral: an MCP server, REST client, or CALDERA plugin can build the same version `1.0.0` contract with `OperationIntentValidator.build()`. This keeps model planning outside the trusted computing base; only deterministic schema, digest, scope, and policy checks authorize execution. After CALDERA finishes, `attest_operation()` provides the evidence-bearing terminal result that an MCP workflow can return to its caller.
 
 ## Configuration
 

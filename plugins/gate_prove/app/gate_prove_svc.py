@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from plugins.gate_prove.app.ability_manifest import AbilityManifestValidator
+from plugins.gate_prove.app.ability_manifest import AbilityManifestValidator, ability_content_hash
 from plugins.gate_prove.app.authorization_lease import AuthorizationLeaseIssuer, command_digest
 from plugins.gate_prove.app.attestation import OperationAttestor
 from plugins.gate_prove.app.ledger import OperationLedger
@@ -13,6 +13,7 @@ from plugins.gate_prove.app.schema import (
     AbilityDecision,
     GateDisposition,
 )
+from plugins.gate_prove.app.trust_contract import IntentValidation, OperationIntentValidator
 
 
 class GateProveService:
@@ -34,6 +35,7 @@ class GateProveService:
         self.lease_issuer = AuthorizationLeaseIssuer(lease_key)
         evidence_key = attestation_key or os.environ.get("CALDERA_ATTESTATION_KEY", "")
         self.attestor = OperationAttestor(evidence_key, self.ledger)
+        self.intent_validator = OperationIntentValidator()
 
     def is_kill_switch_engaged(self) -> bool:
         flag = os.environ.get("CALDERA_KILL_SWITCH", "").strip().lower()
@@ -229,6 +231,30 @@ class GateProveService:
     def verify_attestation(self, bundle: dict[str, Any]) -> bool:
         return self.attestor.verify(bundle)
 
+    def register_operation_intent(
+        self, operation: Any, intent: dict[str, Any]
+    ) -> IntentValidation:
+        """Validate and bind an AI planner's immutable intent to an operation."""
+        validation = self.intent_validator.validate(intent, expected_operation_id=str(operation.id))
+        disposition = "allow" if validation.valid else "deny"
+        reason = "operation_intent_registered" if validation.valid else "operation_intent_invalid"
+        self.ledger.record(
+            str(operation.id),
+            "operation-intent",
+            "trust-contract",
+            disposition,
+            validation.valid,
+            reason,
+            metadata={
+                "intent_id": str(intent.get("intent_id", "")),
+                "intent_digest": validation.intent_digest,
+                "validation_errors": list(validation.errors),
+            },
+        )
+        if validation.valid:
+            operation.gate_prove_intent = dict(intent)
+        return validation
+
     def _lease_execution_count(self, lease_id: str) -> int:
         if not lease_id:
             return 0
@@ -244,6 +270,34 @@ class GateProveService:
         ability = link.ability
         digest = command_digest(getattr(link, "command", ""))
         target = str(getattr(link, "paw", "") or getattr(link, "host", ""))
+        intent = getattr(operation, "gate_prove_intent", None)
+        if intent:
+            binding_errors = list(
+                self.intent_validator.validate(
+                    intent, expected_operation_id=str(operation.id)
+                ).errors
+            )
+            references = {
+                item.get("ability_id"): item.get("manifest_digest")
+                for item in intent.get("abilities", [])
+                if isinstance(item, dict)
+            }
+            manifest = getattr(ability, "gate_prove_manifest", None)
+            expected_manifest_digest = references.get(ability.ability_id)
+            if not expected_manifest_digest:
+                binding_errors.append("ability is not authorized by the operation intent")
+            elif not manifest:
+                binding_errors.append("ability manifest is missing for an intent-bound operation")
+            elif ability_content_hash(manifest) != expected_manifest_digest:
+                binding_errors.append("ability manifest does not match the operation intent")
+            elif str(manifest.get("privilege", "")) != str(
+                intent.get("range", {}).get("privilege_ceiling", "")
+            ):
+                binding_errors.append("ability privilege does not match the operation intent ceiling")
+            if target not in intent.get("range", {}).get("targets", []):
+                binding_errors.append("target is outside the operation intent range")
+            if binding_errors:
+                return self._deny_intent_binding(operation, ability, binding_errors)
         return self.evaluate_ability(
             operation_id=operation.id,
             ability_id=ability.ability_id,
@@ -258,6 +312,33 @@ class GateProveService:
             authorization_lease=str(getattr(link, "gate_prove_authorization_lease", "")),
             ability_digest=digest,
             target=target,
+        )
+
+    def _deny_intent_binding(
+        self, operation: Any, ability: Any, errors: list[str]
+    ) -> AbilityDecision:
+        reason = "operation_intent_binding_failed:" + ";".join(errors)
+        ledger_id, receipt_hash = self.ledger.record(
+            str(operation.id),
+            str(ability.ability_id),
+            str(ability.technique_id),
+            "deny",
+            False,
+            reason,
+            metadata={"binding_errors": errors},
+        )
+        return AbilityDecision(
+            operation_id=str(operation.id),
+            ability_id=str(ability.ability_id),
+            technique_id=str(ability.technique_id),
+            technique_name=str(ability.technique_name),
+            disposition="deny",
+            allowed=False,
+            requires_hitl=True,
+            never_equate_intent_to_approval=True,
+            reason=reason,
+            ledger_id=ledger_id,
+            receipt_hash=receipt_hash,
         )
 
     def govern_link(self, operation: Any, link: Any) -> AbilityDecision:

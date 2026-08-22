@@ -18,6 +18,7 @@ from plugins.gate_prove.app.ability_manifest import ability_content_hash
 from plugins.gate_prove.app.authorization_lease import AuthorizationLeaseIssuer, command_digest
 from plugins.gate_prove.app.ledger import OperationLedger
 from plugins.gate_prove.hook import enable
+from plugins.gate_prove.app.trust_contract import OperationIntentValidator
 
 
 class TestGateProve(unittest.TestCase):
@@ -299,6 +300,91 @@ class TestAuthorizationLease(unittest.TestCase):
             **{k: v for k, v in self.claims.items() if k != "approver"},
         )
         self.assertFalse(result.valid)
+
+
+class TestOperationIntentContract(unittest.TestCase):
+    def setUp(self) -> None:
+        self.service = GateProveService(authorization_key="contract-key", ledger=OperationLedger())
+        self.operation = SimpleNamespace(id="operation-contract-1")
+        self.manifest = TestGateProve.generated_ability()
+        self.manifest_digest = ability_content_hash(self.manifest)
+
+    def intent(self, targets: list[str] | None = None, now: datetime | None = None) -> dict:
+        digest = "a" * 64
+        return OperationIntentValidator.build(
+            operation_id=self.operation.id,
+            objective="Validate identity-to-container detection coverage",
+            planner={"name": "mitre-mcp", "version": "1.0", "model": "test-model"},
+            input_provenance=[{"kind": "stix", "digest": digest}],
+            range_spec_digest="b" * 64,
+            targets=targets or ["range-host-1"],
+            privilege_ceiling="User",
+            abilities=[
+                {
+                    "ability_id": self.manifest["ability_id"],
+                    "manifest_digest": self.manifest_digest,
+                }
+            ],
+            ttl_seconds=60,
+            now=now,
+        )
+
+    def link(self, target: str = "range-host-1") -> SimpleNamespace:
+        provenance = {
+            "generator": "mitre-mcp",
+            "model": "test-model",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "content_hash": self.manifest_digest,
+        }
+        return SimpleNamespace(
+            id="intent-link-1",
+            ability=SimpleNamespace(
+                ability_id=self.manifest["ability_id"],
+                technique_id=self.manifest["technique_id"],
+                technique_name=self.manifest["technique_name"],
+                gate_prove_manifest=self.manifest,
+                gate_prove_provenance=provenance,
+            ),
+            cleanup=0,
+            command="read-range-canary",
+            paw=target,
+            status=-3,
+            states={"DISCARD": -2},
+        )
+
+    def test_valid_intent_binds_exact_manifest_and_target(self) -> None:
+        validation = self.service.register_operation_intent(self.operation, self.intent())
+        link = self.link()
+        decision = self.service.govern_link(self.operation, link)
+        self.assertTrue(validation.valid)
+        self.assertEqual(decision.disposition, "allow")
+
+    def test_intent_rejects_out_of_range_target_at_dispatch(self) -> None:
+        self.service.register_operation_intent(self.operation, self.intent())
+        link = self.link(target="range-host-2")
+        decision = self.service.govern_link(self.operation, link)
+        self.assertEqual(decision.disposition, "deny")
+        self.assertIn("target is outside", decision.reason)
+        self.assertEqual(link.status, link.states["DISCARD"])
+
+    def test_intent_rejects_manifest_above_declared_privilege_ceiling(self) -> None:
+        self.manifest["privilege"] = "Elevated"
+        self.manifest_digest = ability_content_hash(self.manifest)
+        intent = self.intent()
+        validation = self.service.register_operation_intent(self.operation, intent)
+        decision = self.service.govern_link(self.operation, self.link())
+        self.assertTrue(validation.valid)
+        self.assertEqual(decision.disposition, "deny")
+        self.assertIn("privilege", decision.reason)
+
+    def test_expired_intent_is_not_registered(self) -> None:
+        past = datetime.now(timezone.utc) - timedelta(hours=1)
+        validation = self.service.register_operation_intent(
+            self.operation, self.intent(now=past)
+        )
+        self.assertFalse(validation.valid)
+        self.assertFalse(hasattr(self.operation, "gate_prove_intent"))
+        self.assertIn("intent.expires_at must be in the future", validation.errors)
 
 
 class TestPluginHook(unittest.IsolatedAsyncioTestCase):
