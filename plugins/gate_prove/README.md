@@ -14,6 +14,7 @@ When running automated adversary emulation against enterprise or staging infrast
 5. **Atomic Kill-Switch**: Immediate freeze of operation ability dispatch via environment variable (`CALDERA_KILL_SWITCH=1`) or file sentinel (`artifacts/KILL`).
 6. **Generated Ability Manifest**: AI-generated abilities fail closed unless they include parsers, cleanup, bounded scope, generator/model provenance, and a matching digest over execution-relevant fields.
 7. **Central Dispatch Enforcement**: `Operation.apply()` evaluates every planner, REST, scheduled, and direct link through GateProve. Denied or simulation-only links are retained as discarded audit records but never become executable agent instructions.
+8. **Operation Attestation**: Completed operations can emit an integrity-protected evidence bundle containing input provenance, target and command digests, gate decisions, cleanup state, detection outcomes, and the ledger root without disclosing command contents.
 
 ## AI-generated ability contract
 
@@ -37,6 +38,8 @@ kill_switch: false
 At plugin enablement, `CALDERA_PROVE_TOKEN` and `CALDERA_GATE_PROVE_LEDGER` configure the registered `gate_prove_svc` service. The kill switch is evaluated for every decision, so it can freeze dispatch without restarting Caldera.
 
 Set `CALDERA_AUTHORIZATION_KEY` to a high-entropy server-side key used to issue and verify scoped authorization leases. Lease IDs and consumption counts are stored in the action ledger, so a one-execution approval cannot be replayed after a service restart. `CALDERA_PROVE_TOKEN` remains accepted as configuration for migration but no longer authorizes high-blast execution.
+
+Set a separate `CALDERA_ATTESTATION_KEY` to protect portable operation evidence. `attest_operation()` classifies results as `completed_verified`, `completed_with_detection_gaps`, `cleanup_incomplete`, `evidence_incomplete`, `evidence_invalid`, or `in_progress`. Detection evidence distinguishes execution failure, missing telemetry, missing detection, and failed SOC correlation.
 
 Cleanup is context, not authority: setting CALDERA's cleanup flag never bypasses manifest, technique, target, lease, budget, or kill-switch enforcement. High-blast cleanup requires its own scoped authorization lease.
 

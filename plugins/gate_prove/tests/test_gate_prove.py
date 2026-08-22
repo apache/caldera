@@ -378,5 +378,113 @@ class TestDispatchBoundary(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(decision.reason, "authorization_lease_missing")
 
 
+class TestOperationAttestation(unittest.TestCase):
+    def setUp(self) -> None:
+        self.service = GateProveService(
+            authorization_key="authorization-key",
+            attestation_key="attestation-key",
+            ledger=OperationLedger(),
+        )
+
+    @staticmethod
+    def link(link_id: str, cleanup: int = 0) -> SimpleNamespace:
+        return SimpleNamespace(
+            id=link_id,
+            ability=SimpleNamespace(
+                ability_id=f"ability-{link_id}",
+                technique_id="T1082",
+                technique_name="System Information Discovery",
+            ),
+            cleanup=cleanup,
+            command=f"secret-command-{link_id}",
+            paw="range-host-1",
+            status=-3,
+            finish=None,
+            states={"DISCARD": -2, "SUCCESS": 0, "ERROR": 1, "TIMEOUT": 124},
+        )
+
+    def completed_operation(self) -> SimpleNamespace:
+        link = self.link("one")
+        operation = SimpleNamespace(
+            id="operation-1",
+            name="Attested range operation",
+            state="finished",
+            start=datetime.now(timezone.utc) - timedelta(minutes=1),
+            finish=datetime.now(timezone.utc),
+            chain=[link],
+        )
+        self.service.govern_link(operation, link)
+        link.status = link.states["SUCCESS"]
+        link.finish = datetime.now(timezone.utc)
+        return operation
+
+    def test_completed_operation_produces_verifiable_bundle_without_commands(self) -> None:
+        operation = self.completed_operation()
+        bundle = self.service.attest_operation(
+            operation,
+            detection_results=[
+                {
+                    "link_id": "one",
+                    "outcome": "detected",
+                    "telemetry_source": "sysmon",
+                    "detection_id": "sigma-test-1",
+                    "evidence_digest": "evidence-sha256",
+                }
+            ],
+            input_provenance=[{"kind": "stix", "digest": "cti-sha256"}],
+        )
+
+        self.assertEqual(bundle["summary"]["disposition"], "completed_verified")
+        self.assertTrue(self.service.verify_attestation(bundle))
+        self.assertNotIn("secret-command", str(bundle))
+        self.assertEqual(len(bundle["links"][0]["command_digest"]), 64)
+
+    def test_tampered_attestation_fails_verification(self) -> None:
+        operation = self.completed_operation()
+        bundle = self.service.attest_operation(
+            operation,
+            detection_results=[
+                {
+                    "link_id": "one",
+                    "outcome": "detected",
+                    "telemetry_source": "sysmon",
+                    "detection_id": "sigma-test-1",
+                    "evidence_digest": "evidence-sha256",
+                }
+            ],
+        )
+        bundle["operation"]["id"] = "different-operation"
+        self.assertFalse(self.service.verify_attestation(bundle))
+
+    def test_detection_gap_is_distinct_from_visibility_gap(self) -> None:
+        operation = self.completed_operation()
+        bundle = self.service.attest_operation(
+            operation,
+            detection_results=[
+                {
+                    "link_id": "one",
+                    "outcome": "detection_gap",
+                    "telemetry_source": "sysmon",
+                }
+            ],
+        )
+        self.assertEqual(bundle["summary"]["disposition"], "completed_with_detection_gaps")
+        self.assertEqual(bundle["summary"]["detections"]["detection_gap"], 1)
+
+    def test_missing_link_detection_keeps_attestation_incomplete(self) -> None:
+        operation = self.completed_operation()
+        bundle = self.service.attest_operation(operation)
+        self.assertEqual(bundle["summary"]["disposition"], "evidence_incomplete")
+        self.assertEqual(bundle["summary"]["missing_detection_links"], ["one"])
+
+    def test_detection_cannot_reference_unknown_link(self) -> None:
+        operation = self.completed_operation()
+        with self.assertRaisesRegex(ValueError, "unknown link"):
+            self.service.attest_operation(
+                operation,
+                detection_results=[{"link_id": "unknown", "outcome": "visibility_gap"}],
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

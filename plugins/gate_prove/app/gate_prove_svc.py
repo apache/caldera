@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 
 from plugins.gate_prove.app.ability_manifest import AbilityManifestValidator
 from plugins.gate_prove.app.authorization_lease import AuthorizationLeaseIssuer, command_digest
+from plugins.gate_prove.app.attestation import OperationAttestor
 from plugins.gate_prove.app.ledger import OperationLedger
 from plugins.gate_prove.app.schema import (
     DESTRUCTIVE_ATTACK_PATTERNS,
@@ -24,12 +25,15 @@ class GateProveService:
         ledger_path: str = "artifacts/caldera_action_ledger.jsonl",
         manifest_validator: AbilityManifestValidator | None = None,
         authorization_key: str = "",
+        attestation_key: str = "",
     ) -> None:
         self.prove_token = prove_token or os.environ.get("CALDERA_PROVE_TOKEN", "")
         self.ledger = ledger if ledger is not None else OperationLedger(Path(ledger_path))
         self.manifest_validator = manifest_validator or AbilityManifestValidator()
         lease_key = authorization_key or os.environ.get("CALDERA_AUTHORIZATION_KEY", "")
         self.lease_issuer = AuthorizationLeaseIssuer(lease_key)
+        evidence_key = attestation_key or os.environ.get("CALDERA_ATTESTATION_KEY", "")
+        self.attestor = OperationAttestor(evidence_key, self.ledger)
 
     def is_kill_switch_engaged(self) -> bool:
         flag = os.environ.get("CALDERA_KILL_SWITCH", "").strip().lower()
@@ -217,6 +221,13 @@ class GateProveService:
     def issue_authorization_lease(self, **claims: Any) -> str:
         """Create a lease for an approval UI or other trusted control-plane caller."""
         return self.lease_issuer.issue(**claims)
+
+    def attest_operation(self, operation: Any, **evidence: Any) -> dict[str, Any]:
+        """Build an integrity-protected operation evidence bundle."""
+        return self.attestor.build(operation, **evidence)
+
+    def verify_attestation(self, bundle: dict[str, Any]) -> bool:
+        return self.attestor.verify(bundle)
 
     def _lease_execution_count(self, lease_id: str) -> int:
         if not lease_id:
