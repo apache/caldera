@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from plugins.gate_prove.app.ability_manifest import AbilityManifestValidator
 from plugins.gate_prove.app.ledger import OperationLedger
 from plugins.gate_prove.app.schema import (
     DESTRUCTIVE_ATTACK_PATTERNS,
@@ -21,9 +22,11 @@ class GateProveService:
         prove_token: str = "",
         ledger: OperationLedger | None = None,
         ledger_path: str = "artifacts/caldera_action_ledger.jsonl",
+        manifest_validator: AbilityManifestValidator | None = None,
     ) -> None:
         self.prove_token = prove_token or os.environ.get("CALDERA_PROVE_TOKEN", "")
         self.ledger = ledger if ledger is not None else OperationLedger(Path(ledger_path))
+        self.manifest_validator = manifest_validator or AbilityManifestValidator()
 
     def is_kill_switch_engaged(self) -> bool:
         flag = os.environ.get("CALDERA_KILL_SWITCH", "").strip().lower()
@@ -48,6 +51,8 @@ class GateProveService:
         approved: bool = False,
         offered_token: str = "",
         simulate: bool = False,
+        ability_manifest: dict[str, Any] | None = None,
+        provenance: dict[str, Any] | None = None,
     ) -> AbilityDecision:
         # 1. Kill Switch Check
         if self.is_kill_switch_engaged():
@@ -69,7 +74,40 @@ class GateProveService:
                 kill_switch=True,
             )
 
-        # 2. Simulation Mode Check
+        # 2. AI-generated abilities must carry a complete, untampered safety envelope.
+        if ability_manifest is not None or provenance is not None:
+            validation = self.manifest_validator.validate(
+                ability_manifest or {},
+                provenance or {},
+                expected_ability_id=ability_id,
+                expected_technique_id=technique_id,
+            )
+            if not validation.valid:
+                reason = "invalid_ability_manifest:" + ";".join(validation.errors)
+                lid, rhash = self.ledger.record(
+                    operation_id,
+                    ability_id,
+                    technique_id,
+                    "deny",
+                    False,
+                    reason,
+                    metadata={"content_hash": validation.content_hash, "validation_errors": list(validation.errors)},
+                )
+                return AbilityDecision(
+                    operation_id=operation_id,
+                    ability_id=ability_id,
+                    technique_id=technique_id,
+                    technique_name=technique_name,
+                    disposition="deny",
+                    allowed=False,
+                    requires_hitl=True,
+                    never_equate_intent_to_approval=True,
+                    reason=reason,
+                    ledger_id=lid,
+                    receipt_hash=rhash,
+                )
+
+        # 3. Simulation Mode Check
         if simulate:
             lid, rhash = self.ledger.record(
                 operation_id, ability_id, technique_id, "simulate", True, "simulation_mode_requested"
@@ -88,7 +126,7 @@ class GateProveService:
                 receipt_hash=rhash,
             )
 
-        # 3. Destructive / High-Blast Techniques Check
+        # 4. Destructive / High-Blast Techniques Check
         if self.is_destructive_technique(technique_id):
             token_valid = bool(
                 self.prove_token
@@ -131,7 +169,7 @@ class GateProveService:
                 receipt_hash=rhash,
             )
 
-        # 4. Standard Non-Destructive Abilities (Discovery / Collection / Baseline)
+        # 5. Standard Non-Destructive Abilities (Discovery / Collection / Baseline)
         lid, rhash = self.ledger.record(
             operation_id, ability_id, technique_id, "allow", True, "safe_emulation_allowed"
         )
