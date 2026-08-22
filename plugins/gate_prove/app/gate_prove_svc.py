@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import hmac
 import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from plugins.gate_prove.app.ability_manifest import AbilityManifestValidator
+from plugins.gate_prove.app.authorization_lease import AuthorizationLeaseIssuer, command_digest
 from plugins.gate_prove.app.ledger import OperationLedger
 from plugins.gate_prove.app.schema import (
     DESTRUCTIVE_ATTACK_PATTERNS,
@@ -23,10 +23,13 @@ class GateProveService:
         ledger: OperationLedger | None = None,
         ledger_path: str = "artifacts/caldera_action_ledger.jsonl",
         manifest_validator: AbilityManifestValidator | None = None,
+        authorization_key: str = "",
     ) -> None:
         self.prove_token = prove_token or os.environ.get("CALDERA_PROVE_TOKEN", "")
         self.ledger = ledger if ledger is not None else OperationLedger(Path(ledger_path))
         self.manifest_validator = manifest_validator or AbilityManifestValidator()
+        lease_key = authorization_key or os.environ.get("CALDERA_AUTHORIZATION_KEY", "")
+        self.lease_issuer = AuthorizationLeaseIssuer(lease_key)
 
     def is_kill_switch_engaged(self) -> bool:
         flag = os.environ.get("CALDERA_KILL_SWITCH", "").strip().lower()
@@ -53,6 +56,10 @@ class GateProveService:
         simulate: bool = False,
         ability_manifest: dict[str, Any] | None = None,
         provenance: dict[str, Any] | None = None,
+        cleanup: bool = False,
+        authorization_lease: str = "",
+        ability_digest: str = "",
+        target: str = "",
     ) -> AbilityDecision:
         # 1. Kill Switch Check
         if self.is_kill_switch_engaged():
@@ -128,14 +135,31 @@ class GateProveService:
 
         # 4. Destructive / High-Blast Techniques Check
         if self.is_destructive_technique(technique_id):
-            token_valid = bool(
-                self.prove_token
-                and offered_token
-                and hmac.compare_digest(self.prove_token.strip(), offered_token.strip())
+            lease = self.lease_issuer.verify(
+                authorization_lease,
+                operation_id=operation_id,
+                ability_id=ability_id,
+                technique_id=technique_id,
+                ability_digest=ability_digest,
+                target=target,
             )
-            if approved and token_valid:
+            executions = self._lease_execution_count(lease.claims.get("jti", ""))
+            if lease.valid and executions < lease.claims["max_executions"]:
                 lid, rhash = self.ledger.record(
-                    operation_id, ability_id, technique_id, "allow", True, "hitl_token_verified"
+                    operation_id,
+                    ability_id,
+                    technique_id,
+                    "allow",
+                    True,
+                    "authorization_lease_verified",
+                    metadata={
+                        "lease_id": lease.claims["jti"],
+                        "approver": lease.claims["approver"],
+                        "ability_digest": ability_digest,
+                        "target": target,
+                        "execution": executions + 1,
+                        "max_executions": lease.claims["max_executions"],
+                    },
                 )
                 return AbilityDecision(
                     operation_id=operation_id,
@@ -146,14 +170,17 @@ class GateProveService:
                     allowed=True,
                     requires_hitl=True,
                     never_equate_intent_to_approval=True,
-                    reason="hitl_token_verified",
+                    reason="authorization_lease_verified",
                     ledger_id=lid,
                     receipt_hash=rhash,
                 )
 
-            # Unapproved destructive ability falls back to safe simulation
+            reason = lease.reason
+            if lease.valid:
+                reason = "authorization_lease_budget_exhausted"
+            # Unapproved or invalid high-blast activity falls back to safe simulation.
             lid, rhash = self.ledger.record(
-                operation_id, ability_id, technique_id, "simulate", True, "unapproved_destructive_simulated"
+                operation_id, ability_id, technique_id, "simulate", True, reason
             )
             return AbilityDecision(
                 operation_id=operation_id,
@@ -164,7 +191,7 @@ class GateProveService:
                 allowed=True,
                 requires_hitl=True,
                 never_equate_intent_to_approval=True,
-                reason="unapproved_destructive_simulated",
+                reason=reason,
                 ledger_id=lid,
                 receipt_hash=rhash,
             )
@@ -186,3 +213,46 @@ class GateProveService:
             ledger_id=lid,
             receipt_hash=rhash,
         )
+
+    def issue_authorization_lease(self, **claims: Any) -> str:
+        """Create a lease for an approval UI or other trusted control-plane caller."""
+        return self.lease_issuer.issue(**claims)
+
+    def _lease_execution_count(self, lease_id: str) -> int:
+        if not lease_id:
+            return 0
+        return sum(
+            1
+            for entry in self.ledger.entries
+            if entry.get("reason") == "authorization_lease_verified"
+            and entry.get("metadata", {}).get("lease_id") == lease_id
+        )
+
+    def evaluate_link(self, operation: Any, link: Any) -> AbilityDecision:
+        """Evaluate a Caldera link immediately before it enters the chain."""
+        ability = link.ability
+        digest = command_digest(getattr(link, "command", ""))
+        target = str(getattr(link, "paw", "") or getattr(link, "host", ""))
+        return self.evaluate_ability(
+            operation_id=operation.id,
+            ability_id=ability.ability_id,
+            technique_id=ability.technique_id,
+            technique_name=ability.technique_name,
+            approved=bool(getattr(link, "gate_prove_approved", False)),
+            offered_token=str(getattr(link, "gate_prove_token", "")),
+            simulate=bool(getattr(link, "gate_prove_simulate", False)),
+            ability_manifest=getattr(ability, "gate_prove_manifest", None),
+            provenance=getattr(ability, "gate_prove_provenance", None),
+            cleanup=bool(getattr(link, "cleanup", False)),
+            authorization_lease=str(getattr(link, "gate_prove_authorization_lease", "")),
+            ability_digest=digest,
+            target=target,
+        )
+
+    def govern_link(self, operation: Any, link: Any) -> AbilityDecision:
+        """Apply a gate decision to a link before Caldera queues it for an agent."""
+        decision = self.evaluate_link(operation, link)
+        link.gate_prove_decision = decision.to_dict()
+        if decision.disposition != "allow":
+            link.status = link.states["DISCARD"]
+        return decision

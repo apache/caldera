@@ -10,7 +10,9 @@ address = '/plugin/gate_prove/gui'
 
 async def enable(services):
     """Enable GateProve safety hook and ledger service in Caldera server."""
-    services['gate_prove_svc'] = GateProveService(
+    service = GateProveService(
         prove_token=os.environ.get('CALDERA_PROVE_TOKEN', ''),
+        authorization_key=os.environ.get('CALDERA_AUTHORIZATION_KEY', ''),
         ledger_path=os.environ.get('CALDERA_GATE_PROVE_LEDGER', 'artifacts/caldera_action_ledger.jsonl'),
     )
+    services['gate_prove_svc'] = service
