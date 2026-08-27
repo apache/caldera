@@ -91,3 +91,12 @@ class TestBaseWorld:
     def test_is_base64(self):
         b64str = 'aGVsbG8gd29ybGQgZnJvbSB1bml0IHRlc3QgbGFuZAo='
         assert BaseWorld.is_base64(b64str)
+
+    def test_is_uuid4(self):
+        assert BaseWorld.is_uuid4('a3f1c2d4-5b6e-4f7a-8c9d-0e1f2a3b4c5d')
+
+    def test_is_not_uuid4(self):
+        assert not BaseWorld.is_uuid4('not a uuid')
+
+    def test_is_not_uuid4_with_trailing_characters(self):
+        assert not BaseWorld.is_uuid4('a3f1c2d4-5b6e-4f7a-8c9d-0e1f2a3b4c5d-extra')
