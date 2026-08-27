@@ -116,3 +116,20 @@ jobs:
           path: sonar-fork-pr-artifact/
           retention-days: 3
           if-no-files-found: warn
+
+  # Stable aggregate context for the .asf.yaml branch protection on master.
+  # Required status checks match check-run names, and the matrix legs report as
+  # "build (<python>, <toxenv>)" — so every matrix edit renames them and the old
+  # name then silently never reports, wedging all merges until Infra intervenes.
+  # This job's name is hand-written, so it survives matrix changes.
+  ci-required:
+    # always() so a failed matrix still runs this job: a skipped job counts as a
+    # satisfied required check, which would quietly disable the protection.
+    if: always()
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify every matrix leg passed
+        run: |
+          echo "build result: ${{ needs.build.result }}"
+          [ "${{ needs.build.result }}" = "success" ]
