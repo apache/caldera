@@ -1,4 +1,4 @@
-# .asf.yaml: Apache Infra self-service config for github.com/apache/caldera
+# .asf.yaml — Apache Infra self-service config for github.com/apache/caldera
 # Reference: https://github.com/apache/infrastructure-asfyaml  ·  https://infra.apache.org/asf-yaml.html
 # This file lives at the repo ROOT and its `notifications:` block ONLY takes effect on the
 # DEFAULT branch (master). Repo metadata/features (github:) are not branch-specific.
@@ -19,7 +19,7 @@ notifications:
 github:
   description: "Automated Adversary Emulation Platform"
   homepage: https://caldera.apache.org/       # update from the old caldera.mitre.org
-  # NOTE: `labels:` REPLACES the repo's GitHub topics wholesale, so keep the list intentional.
+  # NOTE: `labels:` REPLACES the repo's GitHub topics wholesale — keep the list intentional.
   labels:
     - adversary-emulation
     - security-automation
@@ -63,10 +63,10 @@ github:
          # matrix edit, and a required context that stops reporting blocks every
          # merge until Infra removes it by hand.
          contexts:
-           - ci-required        # .github/workflows/quality.yml,  gates the 4 python legs
-           - security-required  # .github/workflows/security.yml, gates safety + bandit
+           - ci-required        # .github/workflows/quality.yml  — gates the 4 python legs
+           - security-required  # .github/workflows/security.yml — gates safety + bandit
        required_conversation_resolution: true
-  #     # required_signatures: true    # only if all committers sign commits; can block merges otherwise
+  #     # required_signatures: true    # only if all committers sign commits — can block merges otherwise
   copilot_code_review:
     enabled: true
     review_drafts: false

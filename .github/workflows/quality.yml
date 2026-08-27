@@ -119,7 +119,7 @@ jobs:
 
   # Stable aggregate context for the .asf.yaml branch protection on master.
   # Required status checks match check-run names, and the matrix legs report as
-  # "build (<python>, <toxenv>)", so every matrix edit renames them and the old
+  # "build (<python>, <toxenv>)" — so every matrix edit renames them and the old
   # name then silently never reports, wedging all merges until Infra intervenes.
   # This job's name is hand-written, so it survives matrix changes.
   ci-required:
