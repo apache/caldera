@@ -1,7 +1,13 @@
+import io
 import os
 import pathlib
 import tempfile
+from aiohttp import FormData
 from http import HTTPStatus
+from unittest import mock
+
+from app.api.v2.handlers.payload_api import PayloadApi
+from app.utility.base_service import BaseService
 
 import pytest
 
@@ -36,8 +42,12 @@ def expected_payload_file_names(expected_payload_file_paths):
     return {os.path.basename(path) for path in expected_payload_file_paths}
 
 
-class TestPayloadsApi:
+# Return n 0x01 bytes
+def _mock_urandom(n):
+    return b'\x01' * n
 
+
+class TestPayloadsApi:
     async def test_get_payloads(self, api_v2_client, api_cookies, expected_payload_file_names):
         resp = await api_v2_client.get('/api/v2/payloads', cookies=api_cookies)
         payload_file_names = await resp.json()
@@ -82,3 +92,60 @@ class TestPayloadsApi:
     async def test_unauthorized_get_payloads(self, api_v2_client):
         resp = await api_v2_client.get('/api/v2/payloads')
         assert resp.status == HTTPStatus.UNAUTHORIZED
+
+    @mock.patch.object(pathlib.Path, 'rename')
+    async def test_post_payloads(self, mock_rename, api_v2_client, api_cookies):
+        file_data = bytes([0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef])
+        header_data = b'%userencryptedpayload%' + (b'\x01' * 48)  # 32-byte key + 16-byte IV
+        ciphertext = bytes([0x9d, 0x8f, 0xd1, 0xa1, 0x3d, 0x2e, 0xac, 0x17])
+        with tempfile.TemporaryFile(mode='w+b') as tmp_file:
+            tmp_file.write(file_data)
+            tmp_file.flush()
+            tmp_file.seek(0)
+
+            m = mock.mock_open()
+            with mock.patch.object(os, 'urandom', wraps=_mock_urandom):
+                with mock.patch('builtins.open', m):
+                    upload_data = FormData()
+                    upload_data.add_field('file', tmp_file, filename='testpostpayload')
+                    resp = await api_v2_client.post('/api/v2/payloads',
+                                                    data=upload_data)
+            assert resp.status == HTTPStatus.OK
+            assert await resp.json() == dict(payloads=['testpostpayload'])
+            mock_rename.assert_called_with('data/payloads/testpostpayload')
+            m.assert_called_with('data/payloads/temp_testpostpayload', 'wb')
+            m().write.assert_any_call(header_data)
+            m().write.assert_any_call(ciphertext)
+            m().write.assert_called_with(b'')
+
+    def test_save_file(self):
+        original_data = os.urandom(24*1024)
+        with tempfile.NamedTemporaryFile() as fp:
+            PayloadApi._save_file(fp.name, io.BytesIO(original_data))
+            decrypted = BaseService.get_service('file_svc')._read(fp.name)
+            assert decrypted == original_data
+
+    async def test_delete_payloads(self, api_v2_client, api_cookies):
+        want_path = pathlib.Path('data/payloads/testtodelete').resolve()
+        with mock.patch.object(os, 'remove') as mock_remove:
+            resp = await api_v2_client.delete('/api/v2/payloads/testtodelete')
+            mock_remove.assert_called_once_with(want_path)
+            assert resp.status == 204
+
+        # Test ValueError
+        with mock.patch.object(os, 'remove', side_effect=ValueError('testvalueerror')) as mock_remove:
+            resp = await api_v2_client.delete('/api/v2/payloads/testtodelete')
+            assert resp.status == 404
+            assert resp.reason == 'testvalueerror'
+
+        # Test FileNotFoundError
+        with mock.patch.object(os, 'remove', side_effect=FileNotFoundError()) as mock_remove:
+            resp = await api_v2_client.delete('/api/v2/payloads/testtodelete')
+            assert resp.status == 404
+            assert resp.reason == 'Not Found'
+
+        # Test PermissionError
+        with mock.patch.object(os, 'remove', side_effect=PermissionError()) as mock_remove:
+            resp = await api_v2_client.delete('/api/v2/payloads/testtodelete')
+            assert resp.status == 403
+            assert resp.reason == 'Permission denied.'
