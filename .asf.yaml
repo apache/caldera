@@ -59,12 +59,8 @@ github:
          strict: true
          # Contexts must be check-run (job) names as reported to GitHub, not workflow names.
          contexts:
-           - "build (3.10.9, py310,style,coverage-ci)"
-           - "build (3.11, py311,style,coverage-ci)"
-           - "build (3.12, py312,style,coverage-ci)"
-           - "build (3.13, py313,style,coverage-ci)"
-           - "build (3.13, safety)"
-           - "build (3.13, bandit)"
+           - Code Quality
+           - Security Checks
        required_conversation_resolution: true
   #     # required_signatures: true    # only if all committers sign commits — can block merges otherwise
   copilot_code_review:
