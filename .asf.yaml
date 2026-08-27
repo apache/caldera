@@ -10,11 +10,10 @@
 # later if dev@ gets too noisy).
 notifications:
   commits:      commits@caldera.apache.org
-  issues:       dev@caldera.apache.org
-  pullrequests: dev@caldera.apache.org
-  discussions:  dev@caldera.apache.org   # required for github.features.discussions to be enabled
-  # jobs: dev@caldera.apache.org        # GitHub Actions build status — enable if the project wants CI failures on-list
-  # jira_options: link label comment    # only if Caldera adopts ASF Jira; it uses GitHub Issues, so omitted
+  issues:       notifications@caldera.apache.org
+  pullrequests: notifications@caldera.apache.org
+  jobs:         notifications@caldera.apache.org
+  discussions:  notifications@caldera.apache.org  
   
 # --- RECOMMENDED: repo metadata, features, and merge policy ----------------------------------------
 github:
