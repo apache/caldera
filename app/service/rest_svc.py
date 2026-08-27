@@ -246,7 +246,7 @@ class RestService(RestServiceInterface, BaseService):
         link = Link.load(dict(command=encoded_command, paw=agent.paw, cleanup=0, ability=ability, score=0, jitter=2,
                               executor=executor, status=operation.link_status()))
         link.apply_id(agent.host)
-        operation.add_link(link)
+        await operation.apply(link)
 
         return dict(link=link.unique)
 
