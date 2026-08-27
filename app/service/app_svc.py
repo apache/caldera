@@ -17,7 +17,10 @@ import yaml
 from aiohttp import web
 import croniter
 
+from app.objects.c_adversary import Adversary
+from app.objects.c_objective import Objective
 from app.objects.c_plugin import Plugin
+from app.objects.c_source import Source
 from app.service.interfaces.i_app_svc import AppServiceInterface
 from app.utility.base_service import BaseService
 
@@ -208,6 +211,7 @@ class AppService(AppServiceInterface, BaseService):
         plugins = [p for p in await self.get_service('data_svc').locate('plugins', dict(enabled=True)) if p.data_dir]
         plugins.append(Plugin(data_dir='data'))
         while True:
+            reloaded = False
             for p in plugins:
                 files = (os.path.join(rt, fle) for rt, _, f in os.walk(p.data_dir+'/abilities') for fle in f if
                          time.time() - os.stat(os.path.join(rt, fle)).st_mtime < int(self.get_config('ability_refresh')))
@@ -217,7 +221,49 @@ class AppService(AppServiceInterface, BaseService):
                         continue
                     self.log.debug('[%s] Reloading %s' % (p.name, f))
                     await self.get_service('data_svc').load_ability_file(filename=f, access=p.access)
+                    reloaded = True
+            if reloaded:
+                self.log.debug('Ability files changed — rebuilding learning model')
+                await self.get_service('learning_svc').build_model()
             await asyncio.sleep(int(self.get_config('ability_refresh')))
+
+    async def watch_adversary_files(self):
+        """Watch for new/modified adversary YAML files and reload them into RAM."""
+        await self._watch_yaml_files('adversaries', Adversary)
+
+    async def watch_source_files(self):
+        """Watch for new/modified source YAML files and reload them into RAM."""
+        await self._watch_yaml_files('sources', Source)
+
+    async def watch_objective_files(self):
+        """Watch for new/modified objective YAML files and reload them into RAM."""
+        await self._watch_yaml_files('objectives', Objective)
+
+    async def _watch_yaml_files(self, data_type, object_class):
+        """Generic file watcher for YAML-based data types (adversaries, sources, objectives).
+
+        Scans plugin and core data directories for new or modified YAML files
+        and reloads them into RAM via data_svc.load_yaml_file().
+        """
+        refresh = int(self.get_config('ability_refresh'))
+        await asyncio.sleep(refresh)
+        plugins = [p for p in await self.get_service('data_svc').locate('plugins', dict(enabled=True)) if p.data_dir]
+        plugins.append(Plugin(data_dir='data'))
+        while True:
+            for p in plugins:
+                data_dir = os.path.join(p.data_dir, data_type)
+                if not os.path.isdir(data_dir):
+                    continue
+                files = (os.path.join(rt, fle) for rt, _, f in os.walk(data_dir) for fle in f if
+                         time.time() - os.stat(os.path.join(rt, fle)).st_mtime < refresh)
+                for f in files:
+                    if not f.endswith(('.yml', '.yaml')):
+                        self.log.debug('[%s] Skipping non YML file %s' % (p.name, f))
+                        continue
+                    self.log.debug('[%s] Reloading %s %s' % (p.name, data_type, f))
+                    await self.get_service('data_svc').load_yaml_file(object_class, filename=f, access=p.access)
+            refresh = int(self.get_config('ability_refresh'))
+            await asyncio.sleep(refresh)
 
     def register_subapp(self, path: str,  app: web.Application):
         """Registers a web application under the root application.
