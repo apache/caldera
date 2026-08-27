@@ -13,6 +13,7 @@ from multidict import CIMultiDict
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from app.service.interfaces.i_file_svc import FileServiceInterface
@@ -28,6 +29,7 @@ ALLOWED_LDFLAG_REGEXES = {
     'http': URL_SANITIZATION_REGEX,
     'socket': re.compile(r'^[\w\-\.:]+$')
 }
+USER_PAYLOAD_ENCRYPTION_FLAG = bytes('%userencryptedpayload%', encoding='utf-8')
 
 
 class FileSvc(FileServiceInterface, BaseService):
@@ -294,7 +296,16 @@ class FileSvc(FileServiceInterface, BaseService):
     def _read(self, filename):
         with open(filename, 'rb') as f:
             buf = f.read()
-        if self.encryptor and buf.startswith(bytes(FILE_ENCRYPTION_FLAG, encoding='utf-8')):
+        if buf.startswith(USER_PAYLOAD_ENCRYPTION_FLAG):
+            # Handle encrypted user-uploaded payloads
+            buf = buf[len(USER_PAYLOAD_ENCRYPTION_FLAG):]
+            key = buf[0:32]
+            iv = buf[32:48]
+            ciphertext = buf[48:]
+            cipher = Cipher(algorithms.AES(key), modes.CTR(iv))
+            decryptor = cipher.decryptor()
+            buf = decryptor.update(ciphertext) + decryptor.finalize()
+        elif self.encryptor and buf.startswith(bytes(FILE_ENCRYPTION_FLAG, encoding='utf-8')):
             try:
                 buf = self.encryptor.decrypt(buf[len(FILE_ENCRYPTION_FLAG):])
             except InvalidToken:

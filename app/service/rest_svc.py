@@ -30,7 +30,11 @@ class RestService(RestServiceInterface, BaseService):
     def __init__(self):
         logging.getLogger('asyncio').setLevel(logging.WARNING)
         self.log = self.add_service('rest_svc', self)
-        self.loop = asyncio.get_event_loop()
+        try:
+            self.loop = asyncio.get_event_loop()
+        except RuntimeError:
+            self.loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self.loop)
 
     async def persist_adversary(self, access, data):
         """Persist adversaries. Accepts single adversary or bulk set of adversaries.

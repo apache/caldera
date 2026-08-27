@@ -1,12 +1,12 @@
-[![Release](https://img.shields.io/badge/dynamic/json?color=blue&label=Release&query=tag_name&url=https%3A%2F%2Fapi.github.com%2Frepos%2Fmitre%2Fcaldera%2Freleases%2Flatest)](https://github.com/mitre/caldera/releases/latest)
-[![Testing Status](https://github.com/mitre/caldera/actions/workflows/quality.yml/badge.svg?branch=master)](https://github.com/mitre/caldera/actions/workflows/quality.yml?query=branch%3Amaster)
-[![Security Status](https://github.com/mitre/caldera/actions/workflows/security.yml/badge.svg?branch=master)](https://github.com/mitre/caldera/actions/workflows/security.yml?query=branch%3Amaster)
-[![codecov](https://codecov.io/gh/mitre/caldera/branch/master/graph/badge.svg)](https://codecov.io/gh/mitre/caldera)
+[![Release](https://img.shields.io/badge/dynamic/json?color=blue&label=Release&query=tag_name&url=https%3A%2F%2Fapi.github.com%2Frepos%2Fapache%2Fcaldera%2Freleases%2Flatest)](https://github.com/apache/caldera/releases/latest)
+[![Testing Status](https://github.com/apache/caldera/actions/workflows/quality.yml/badge.svg?branch=master)](https://github.com/apache/caldera/actions/workflows/quality.yml?query=branch%3Amaster)
+[![Security Status](https://github.com/apache/caldera/actions/workflows/security.yml/badge.svg?branch=master)](https://github.com/apache/caldera/actions/workflows/security.yml?query=branch%3Amaster)
+[![codecov](https://codecov.io/gh/apache/caldera/branch/master/graph/badge.svg)](https://codecov.io/gh/apache/caldera)
 [![Documentation Status](https://readthedocs.org/projects/caldera/badge/?version=stable)](http://caldera.readthedocs.io/?badge=stable)
 
-# MITRE Caldera&trade;
+# Caldera&trade;
 
-MITRE Caldera&trade; is a cyber security platform designed to easily automate adversary emulation, assist manual red-teams, and automate incident response.
+Caldera&trade; is a cyber security platform designed to easily automate adversary emulation, assist manual red-teams, and automate incident response.
 
 It is built on the [MITRE ATT&CK™ framework](https://attack.mitre.org/) and is an active research project at MITRE.
 
@@ -19,14 +19,9 @@ an asynchronous command-and-control (C2) server with a REST API and a web interf
 ## Resources & Socials
 * 📜 [Documentation, training, and use-cases](https://caldera.readthedocs.io/en/latest/)
 * 🎬 [Tutorial Videos](https://www.youtube.com/playlist?list=PLF2bj1pw7-ZvLTjIwSaTXNLN2D2yx-wXH)
-* ✍️ [Caldera's blog](https://medium.com/@mitrecaldera/welcome-to-the-official-mitre-caldera-blog-page-f34c2cdfef09)
-* 🌐 [Homepage](https://caldera.mitre.org)
+* ✍️ [Caldera's blog](https://medium.com/@apachecaldera/welcome-to-the-official-apache-caldera-blog-page-f34c2cdfef09)
+* 🌐 [Homepage](https://caldera.apache.org)
 
-### User Survey
-
-It is always incredibly helpful for our team to hear from users about their Caldera use cases and the value that Caldera provides for their learning, research, or cyber security work. If you or your team uses Caldera significantly, we would greatly appreciate hearing from you.
-
-📋 **Survey** - https://forms.office.com/g/ByBWxYTf8e
 
 ## Plugins
 
@@ -79,7 +74,7 @@ source .calderavenv/bin/activate
 
 Concise installation steps:
 ```Bash
-git clone https://github.com/mitre/caldera.git --recursive
+git clone https://github.com/apache/caldera.git --recursive
 cd caldera
 pip3 install -r requirements.txt
 python3 server.py --insecure --build
@@ -88,7 +83,7 @@ python3 server.py --insecure --build
 Full steps:
 Start by cloning this repository recursively, passing the desired version/release in x.x.x format. This will pull in all available plugins.
 ```Bash
-git clone https://github.com/mitre/caldera.git --recursive --tag x.x.x
+git clone https://github.com/apache/caldera.git --recursive --tag x.x.x
 ```
 
 Next, install the PIP requirements:
@@ -111,7 +106,7 @@ If you prefer to not use the new VueJS UI, revert to Caldera v4.2.0. Correspondi
 
 Local build:
 ```sh
-git clone https://github.com/mitre/caldera.git --recursive
+git clone https://github.com/apache/caldera.git --recursive
 cd caldera
 docker build --build-arg VARIANT=full -t caldera .
 docker run -it -p 8888:8888 caldera
@@ -121,7 +116,7 @@ Adjust the port forwarding (`-p`) and build args (`--build-arg`) as desired to m
 
 Pre-Built Image (from GitHub Container Registry):
 ```sh
-docker run -p 8888:8888 ghcr.io/mitre/caldera:latest
+docker run -p 8888:8888 ghcr.io/apache/caldera:latest
 ```
 This container may be slightly outdated, we recommend building the container yourself.
 
@@ -171,15 +166,11 @@ Refer to our [Vulnerability Disclosure Documentation](SECURITY.md) for submittin
 
 #### Recent Vulnerability Disclosures
 
-`🚨Security Notice🚨`: (17 Feb 2025 10:00 EST) Please pull v5.1.0+ for a recent security patch for [CVE-2025-27364](https://www.cve.org/CVERecord?id=CVE-2025-27364). Please update your Caldera instance, especially if you host Caldera on a publicly accessible network. [Vulnerability walkthrough.](https://medium.com/@mitrecaldera/mitre-caldera-security-advisory-remote-code-execution-cve-2025-27364-5f679e2e2a0e)
+`🚨Security Notice🚨`: (17 Feb 2025 10:00 EST) Please pull v5.1.0+ for a recent security patch for [CVE-2025-27364](https://www.cve.org/CVERecord?id=CVE-2025-27364). Please update your Caldera instance, especially if you host Caldera on a publicly accessible network. [Vulnerability walkthrough.](https://medium.com/@apachecaldera/mitre-caldera-security-advisory-remote-code-execution-cve-2025-27364-5f679e2e2a0e)
 
 ## Contributing
 
 Refer to our [contributor documentation](CONTRIBUTING.md).
-
-## Licensing
-
-To discuss licensing opportunities, please reach out to caldera@mitre.org or directly to [MITRE's Technology Transfer Office](https://www.mitre.org/about/corporate-overview/contact-us#technologycontact).
 
 ## Caldera Benefactor Program
 
