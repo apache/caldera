@@ -17,6 +17,7 @@ import yaml
 from aiohttp import web
 import croniter
 
+from app.objects.c_adversary import Adversary
 from app.objects.c_plugin import Plugin
 from app.service.interfaces.i_app_svc import AppServiceInterface
 from app.utility.base_service import BaseService
@@ -217,6 +218,22 @@ class AppService(AppServiceInterface, BaseService):
                         continue
                     self.log.debug('[%s] Reloading %s' % (p.name, f))
                     await self.get_service('data_svc').load_ability_file(filename=f, access=p.access)
+            await asyncio.sleep(int(self.get_config('ability_refresh')))
+
+    async def watch_adversary_files(self):
+        await asyncio.sleep(int(self.get_config('ability_refresh')))
+        plugins = [p for p in await self.get_service('data_svc').locate('plugins', dict(enabled=True)) if p.data_dir]
+        plugins.append(Plugin(data_dir='data'))
+        while True:
+            for p in plugins:
+                files = (os.path.join(rt, fle) for rt, _, f in os.walk(p.data_dir+'/adversaries') for fle in f if
+                         time.time() - os.stat(os.path.join(rt, fle)).st_mtime < int(self.get_config('ability_refresh')))
+                for f in files:
+                    if not f.endswith(('.yml', '.yaml')):
+                        self.log.debug('[%s] Skipping non YML file %s' % (p.name, f))
+                        continue
+                    self.log.debug('[%s] Reloading adversary %s' % (p.name, f))
+                    await self.get_service('data_svc').load_yaml_file(Adversary, filename=f, access=p.access)
             await asyncio.sleep(int(self.get_config('ability_refresh')))
 
     def register_subapp(self, path: str,  app: web.Application):
