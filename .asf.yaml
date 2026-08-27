@@ -57,14 +57,14 @@ github:
          dismiss_stale_reviews: true
        required_status_checks:
          strict: true
-         # Contexts are check-run (job) names as reported to GitHub, not workflow
-         # names. Require the hand-named aggregate job in each workflow rather than
-         # the generated "build (<python>, <toxenv>)" legs: those are renamed by any
-         # matrix edit, and a required context that stops reporting blocks every
-         # merge until Infra removes it by hand.
+         # Contexts must be check-run (job) names as reported to GitHub, not workflow names.
          contexts:
-           - ci-required        # .github/workflows/quality.yml  — gates the 4 python legs
-           - security-required  # .github/workflows/security.yml — gates safety + bandit
+           - "build (3.10.9, py310,style,coverage-ci)"
+           - "build (3.11, py311,style,coverage-ci)"
+           - "build (3.12, py312,style,coverage-ci)"
+           - "build (3.13, py313,style,coverage-ci)"
+           - "build (3.13, safety)"
+           - "build (3.13, bandit)"
        required_conversation_resolution: true
   #     # required_signatures: true    # only if all committers sign commits — can block merges otherwise
   copilot_code_review:

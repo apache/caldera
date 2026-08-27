@@ -36,18 +36,3 @@ jobs:
         env:
           TOXENV: ${{ matrix.toxenv }}
         run: tox
-
-  # Stable aggregate context for the .asf.yaml branch protection on master.
-  # See the matching ci-required job in quality.yml for why the generated
-  # "build (<python>, <toxenv>)" names must not be required directly.
-  security-required:
-    # always() so a failed matrix still runs this job: a skipped job counts as a
-    # satisfied required check, which would quietly disable the protection.
-    if: always()
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Verify every matrix leg passed
-        run: |
-          echo "build result: ${{ needs.build.result }}"
-          [ "${{ needs.build.result }}" = "success" ]
