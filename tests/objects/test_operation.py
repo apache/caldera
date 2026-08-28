@@ -705,6 +705,81 @@ class TestOperation:
         result = op._resolve_fact(stub, fact_list)
         assert result is stub
 
+    async def test_report_with_empty_agents_and_chain_links(
+            self, operation_adversary, executor, ability, operation_link,
+            encoded_command, parse_datestring, file_svc, data_svc, knowledge_svc, fire_event_mock):
+        """report() should succeed when self.agents is empty but self.chain has links (deleted agents)."""
+        from app.objects.c_planner import Planner
+        from app.objects.c_objective import Objective
+
+        op = Operation(name='deleted-agent-test', agents=[], adversary=operation_adversary)
+        op.set_start_details()
+        op.planner = Planner(planner_id='tp', name='test_planner', module='test', params=None)
+        op.objective = Objective(id='obj1', name='test objective')
+
+        exe = executor(name='psh', platform='windows', command='whoami')
+        ab = ability(ability_id='del123', tactic='discovery', technique_id='T0000',
+                     technique_name='test technique', name='test ability',
+                     description='test desc', executors=[exe])
+
+        link1 = operation_link(
+            command=encoded_command('whoami'), plaintext_command=encoded_command('whoami'),
+            paw='deleted-paw-1', ability=ab, executor=exe, status=0, host='HOST1', pid=1,
+            decide=parse_datestring(LINK1_DECIDE_TIME),
+        )
+        op.chain = [link1]
+
+        report = await op.report(file_svc, data_svc, output=False)
+        assert report is not None
+        assert 'deleted-paw-1' in report['steps']
+        assert len(report['steps']['deleted-paw-1']['steps']) == 1
+
+    async def test_report_with_partial_deleted_agents(
+            self, operation_agent, operation_adversary, executor, ability, operation_link,
+            encoded_command, parse_datestring, file_svc, data_svc, knowledge_svc, fire_event_mock):
+        """report() should include steps from both present agents and deleted agents."""
+        from app.objects.c_planner import Planner
+        from app.objects.c_objective import Objective
+
+        op = Operation(name='partial-delete-test', agents=[operation_agent], adversary=operation_adversary)
+        op.set_start_details()
+        op.planner = Planner(planner_id='tp', name='test_planner', module='test', params=None)
+        op.objective = Objective(id='obj2', name='test objective')
+
+        exe = executor(name='psh', platform='windows', command='whoami')
+        ab = ability(ability_id='pd123', tactic='discovery', technique_id='T0000',
+                     technique_name='test technique', name='test ability',
+                     description='test desc', executors=[exe])
+
+        known_link = operation_link(
+            command=encoded_command('whoami'), plaintext_command=encoded_command('whoami'),
+            paw=operation_agent.paw, ability=ab, executor=exe, status=0,
+            host=operation_agent.host, pid=1,
+            decide=parse_datestring(LINK1_DECIDE_TIME),
+        )
+        deleted_paw = 'deleted-agent-paw'
+        deleted_link = operation_link(
+            command=encoded_command('hostname'), plaintext_command=encoded_command('hostname'),
+            paw=deleted_paw, ability=ab, executor=exe, status=0, host='GONE', pid=2,
+            decide=parse_datestring(LINK2_DECIDE_TIME),
+        )
+        op.chain = [known_link, deleted_link]
+
+        report = await op.report(file_svc, data_svc, output=False)
+        assert report is not None
+        assert operation_agent.paw in report['steps']
+        assert deleted_paw in report['steps']
+        assert len(report['steps'][operation_agent.paw]['steps']) == 1
+        assert len(report['steps'][deleted_paw]['steps']) == 1
+        # host_group should contain entries for both present and deleted agents
+        paws_in_host_group = []
+        for entry in report['host_group']:
+            if isinstance(entry, dict) and 'paw' in entry:
+                paws_in_host_group.append(entry['paw'])
+            elif hasattr(entry, 'get') and entry.get('paw'):
+                paws_in_host_group.append(entry['paw'])
+        assert deleted_paw in paws_in_host_group
+
     async def test_init_source_seeds_relationship_with_resolved_facts(self, knowledge_svc, fire_event_mock, adversary):
         """Relationships in a fact source that use trait-only fact references should be seeded
         with the resolved (non-null) fact values from the source's fact list. Regression test
