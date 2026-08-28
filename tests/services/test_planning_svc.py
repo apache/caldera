@@ -554,3 +554,33 @@ class TestPlanningService:
         gen = await planning_svc.add_test_variants(handle, agent, facts=[f0, f1, f2, f3])
 
         assert gen[0].host == handle[0].host
+
+    async def test_call_ability_plugin_hooks_invokes_all_hooks(self, planning_svc, ability, executor):
+        """All entries in Executor.HOOKS must be called, not just the language-keyed one."""
+        call_log = []
+
+        async def hook_a(ab, ex):
+            call_log.append('a')
+
+        async def hook_b(ab, ex):
+            call_log.append('b')
+
+        ex = executor(name='psh', platform='windows')
+        ab = ability()
+        ex.HOOKS = {'key_a': hook_a, 'key_b': hook_b}
+        await planning_svc._call_ability_plugin_hooks(ab, ex)
+        assert set(call_log) == {'a', 'b'}, 'All registered hooks must be invoked'
+
+    async def test_call_ability_plugin_hooks_no_hooks(self, planning_svc, ability, executor):
+        """_call_ability_plugin_hooks must be a no-op when HOOKS is absent or empty."""
+        import types
+
+        ex = executor(name='psh', platform='windows')
+        ab = ability()
+        ex.HOOKS = {}
+        await planning_svc._call_ability_plugin_hooks(ab, ex)  # should not raise
+
+        # Use SimpleNamespace to genuinely test absent HOOKS attribute;
+        # real Executor instances always have a class-level HOOKS dict.
+        executor_without_hooks = types.SimpleNamespace()
+        await planning_svc._call_ability_plugin_hooks(ab, executor_without_hooks)  # should not raise
