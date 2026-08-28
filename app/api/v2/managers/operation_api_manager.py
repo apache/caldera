@@ -235,22 +235,27 @@ class OperationApiManager(BaseApiManager):
     async def get_hosts(self, operation: dict):
         hosts = {}
         chain = operation.get('chain', [])
+        pending = {}
         for link in chain:
             host = link.get('host')
-            if not host:
+            if not host or host in hosts or host in pending:
                 continue
-            if host not in hosts:
-                agent_obj = self.find_object('agents', {'host': host})
-                if agent_obj is None:
-                    continue
-                tmp_agent = agent_obj.display
-                tmp_host = {
+            agent_obj = self.find_object('agents', {'host': host})
+            if agent_obj is None:
+                continue
+            pending[host] = agent_obj.display
+
+        if pending:
+            reachable_results = await asyncio.gather(
+                *(self.get_reachable_hosts(agent=agent) for agent in pending.values())
+            )
+            for (host, tmp_agent), reachable in zip(pending.items(), reachable_results):
+                hosts[host] = {
                     'host': tmp_agent.get('host'),
                     'host_ip_addrs': tmp_agent.get('host_ip_addrs'),
                     'platform': tmp_agent.get('platform'),
-                    'reachable_hosts': await self.get_reachable_hosts(agent=tmp_agent)
+                    'reachable_hosts': reachable
                 }
-                hosts[host] = tmp_host
         return hosts
 
     async def get_reachable_hosts(self, agent: dict = None, operation: dict = None):
@@ -269,12 +274,17 @@ class OperationApiManager(BaseApiManager):
                 if paw:
                     paws = paws + (paw,)
 
-        hosts = []
-        for trait in trait_names:
-            fqdns = await self.services['knowledge_svc'].get_facts({
+        if not trait_names:
+            return []
+
+        fact_results = await asyncio.gather(
+            *(self.services['knowledge_svc'].get_facts({
                 'trait': trait,
                 'collected_by': paws,
-            })
+            }) for trait in trait_names)
+        )
+        hosts = []
+        for fqdns in fact_results:
             for name in fqdns:
                 hosts.append(name.value)
 
