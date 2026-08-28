@@ -32,11 +32,19 @@ class LogicalPlanner:
         return await self.planning_svc.get_links(operation=self.operation, agent=agent)
 
     # Given list of links, returns the link that appears first in the adversary's atomic ordering.
-    async def _get_next_atomic_link(self, links):
-        abil_id_to_link = dict()
-        for link in links:
-            abil_id_to_link[link.ability.ability_id] = link
+    async def _get_next_atomic_link(self, possible_links):
+        # Try to match based on explicit step_idx (set by _generate_new_links for dict-style steps)
+        link_lookup = {link.step_idx: link for link in possible_links if hasattr(link, 'step_idx')}
+        for idx, _ in enumerate(self.operation.adversary.atomic_ordering):
+            if idx in link_lookup:
+                return link_lookup[idx]
+
+        # Fallback to ability_id matching (legacy string-style ordering)
+        abil_id_to_link = {link.ability.ability_id: link for link in possible_links}
         candidate_ids = set(abil_id_to_link.keys())
-        for ab_id in self.operation.adversary.atomic_ordering:
-            if ab_id in candidate_ids:
-                return abil_id_to_link[ab_id]
+        for step in self.operation.adversary.atomic_ordering:
+            ability_id = step if isinstance(step, str) else step.get('ability_id')
+            if ability_id in candidate_ids:
+                return abil_id_to_link[ability_id]
+
+        return None

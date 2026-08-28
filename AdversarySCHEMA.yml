@@ -1,0 +1,32 @@
+# Adversary Profile Schema - Extended Format
+#
+# atomic_ordering accepts both legacy string ability IDs and dict-style
+# steps with per-step metadata.  The two formats can be mixed freely.
+#
+# Dict-style step fields:
+#   ability_id  (required) - UUID of the ability to execute
+#   metadata    (optional) - per-step configuration
+#     executor_facts       - map of platform -> list of {trait, value} dicts
+#                            used to inject facts into command templates
+
+adversary_id: 95cad57a-8e4f-4ba0-87cf-03d8a7cad0a0
+name: Example Adversary
+description: Demonstrates the extended adversary profile schema
+objective: 495a9828-cab1-44dd-a0ca-66e58177d8cc
+atomic_ordering:
+  # Dict-style step with per-platform executor facts
+  - ability_id: 36eecb80-ede3-442b-8774-956e906aff02
+    metadata:
+      executor_facts:
+        linux:
+          - trait: time.sleep
+            value: '10'
+  # Same ability can appear multiple times with different metadata
+  - ability_id: 36eecb80-ede3-442b-8774-956e906aff02
+    metadata:
+      executor_facts:
+        linux:
+          - trait: time.sleep
+            value: '3'
+  # Legacy string format still works
+  # - <ability-uuid>

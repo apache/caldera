@@ -17,7 +17,9 @@ class AdversarySchema(ma.Schema):
     adversary_id = ma.fields.String()
     name = ma.fields.String()
     description = ma.fields.String()
-    atomic_ordering = ma.fields.List(ma.fields.String())
+    atomic_ordering = ma.fields.List(
+        ma.fields.Raw(),  # Accepts either str (ability_id) or dict (step with metadata)
+    )
     objective = ma.fields.String()
     tags = ma.fields.List(ma.fields.String(), allow_none=True)
     has_repeatable_abilities = ma.fields.Boolean(dump_only=True)
@@ -59,16 +61,18 @@ class Adversary(FirstClassObjectInterface, BaseObject):
     def unique(self):
         return self.hash('%s' % self.adversary_id)
 
-    def __init__(self, name='', adversary_id='', description='', atomic_ordering=(), objective='', tags=None, plugin=''):
+    def __init__(self, name='', adversary_id='', description='', atomic_ordering=(), objective='', tags=None,
+                 plugin='', metadata=None, **_):
         super().__init__()
         self.adversary_id = adversary_id if adversary_id else str(uuid.uuid4())
         self.name = name
         self.description = description
-        self.atomic_ordering = atomic_ordering
+        self.atomic_ordering = list(atomic_ordering or [])
         self.objective = objective or DEFAULT_OBJECTIVE_ID
         self.tags = set(tags) if tags else set()
         self.has_repeatable_abilities = False
         self.plugin = plugin
+        self.metadata = metadata or {}
 
     def store(self, ram):
         existing = self.retrieve(ram['adversaries'], self.unique)
@@ -85,9 +89,11 @@ class Adversary(FirstClassObjectInterface, BaseObject):
         return existing
 
     def verify(self, log, abilities, objectives):
-        for ability_id in self.atomic_ordering:
-            if not next((ability for ability in abilities if ability.ability_id == ability_id), None):
-                log.warning('Ability referenced in adversary %s but not found: %s', self.adversary_id, ability_id)
+        for step in self.atomic_ordering:
+            ability_id = step if isinstance(step, str) else step.get('ability_id')
+            if not any(ability.ability_id == ability_id for ability in abilities):
+                log.warning('Ability referenced in adversary %s but not found: %s',
+                            self.adversary_id, ability_id)
 
         if not self.objective:
             self.objective = DEFAULT_OBJECTIVE_ID
@@ -108,4 +114,9 @@ class Adversary(FirstClassObjectInterface, BaseObject):
         return self.plugin
 
     def check_repeatable_abilities(self, ability_list):
-        return any(ab.repeatable for ab_id in self.atomic_ordering for ab in ability_list if ab.ability_id == ab_id)
+        for step in self.atomic_ordering:
+            ability_id = step if isinstance(step, str) else step.get('ability_id')
+            for ab in ability_list:
+                if ab.ability_id == ability_id and ab.repeatable:
+                    return True
+        return False
