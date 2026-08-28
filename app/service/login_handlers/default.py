@@ -4,6 +4,8 @@ import ldap3
 from aiohttp import web
 from aiohttp_jinja2 import render_template
 from ldap3.core.exceptions import LDAPAttributeError, LDAPException
+from ldap3.utils.conv import escape_filter_chars
+from ldap3.utils.dn import escape_rdn_value
 
 from app.service.interfaces.i_login_handler import LoginHandlerInterface
 from app.utility.config_util import verify_hash
@@ -59,10 +61,11 @@ class DefaultLoginHandler(LoginHandlerInterface):
         dn = self._ldap_config.get('dn')
         user_attr = self._ldap_config.get('user_attr') or 'uid'
         user_format_string = self._ldap_config.get("user_format") or "{user_attr}={user},{dn}"
+        safe_username = escape_rdn_value(username)
         try:
-            user_string = user_format_string.format(user_attr=user_attr, user=username, dn=dn)
+            user_string = user_format_string.format(user_attr=user_attr, user=safe_username, dn=dn)
         except KeyError:
-            user_string = '%s=%s,%s' % (user_attr, username, dn)
+            user_string = '%s=%s,%s' % (user_attr, safe_username, dn)
 
         try:
             with ldap3.Connection(server, user=user_string, password=password) as conn:
@@ -82,7 +85,7 @@ class DefaultLoginHandler(LoginHandlerInterface):
         red_group_name = self._ldap_config.get('red_group') or 'red'
 
         try:
-            connection.search(dn, '(%s=%s)' % (user_attr, username), attributes=[group_attr])
+            connection.search(dn, '(%s=%s)' % (user_attr, escape_filter_chars(username)), attributes=[group_attr])
         except LDAPAttributeError:
             self.log.error('Invalid group_attr in config: %s', group_attr)
             return 'blue'
