@@ -49,3 +49,6 @@
 [submodule "plugins/magma"]
 	path = plugins/magma
 	url = https://github.com/mitre/magma.git
+[submodule "plugins/bastion"]
+	path = plugins/bastion
+	url = https://github.com/seosamuel02/caldera-bastion.git
