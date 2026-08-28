@@ -1,22 +1,26 @@
 import abc
 import json
-
+import logging
 from aiohttp import web
 
 from app.api.v2.handlers.base_api import BaseApi
 from app.api.v2.responses import JsonHttpBadRequest, JsonHttpForbidden, JsonHttpNotFound
 
+# Named constants for pagination defaults/limits used in get_all_objects.
+DEFAULT_LIMIT = 100
+MAX_LIMIT = 1000
+
 
 class BaseObjectApi(BaseApi):
     def __init__(self, description, obj_class, schema, ram_key, id_property, auth_svc, logger=None):
         super().__init__(auth_svc=auth_svc, logger=logger)
+        # self.log is provided by BaseApi as a property backed by self._log
 
         self.description = description
         self.obj_class = obj_class
         self.schema = schema
         self.ram_key = ram_key
         self.id_property = id_property
-
         self._api_manager = None
 
     @abc.abstractmethod
@@ -30,7 +34,24 @@ class BaseObjectApi(BaseApi):
         include = request['querystring'].get('include')
         exclude = request['querystring'].get('exclude')
 
-        return self._api_manager.find_and_dump_objects(self.ram_key, access, sort, include, exclude)
+        # Pagination support – uses named constants DEFAULT_LIMIT / MAX_LIMIT.
+        try:
+            limit = min(int(request['querystring'].get('limit', DEFAULT_LIMIT)), MAX_LIMIT)
+        except (ValueError, TypeError):
+            limit = DEFAULT_LIMIT
+        try:
+            offset = max(int(request['querystring'].get('offset', 0)), 0)
+        except (ValueError, TypeError):
+            offset = 0
+
+        all_objects = self._api_manager.find_and_dump_objects(self.ram_key, access, sort, include, exclude)
+        total_count = len(all_objects) if isinstance(all_objects, list) else 0
+        if isinstance(all_objects, list):
+            all_objects = all_objects[offset:offset + limit]
+
+        # Store pagination metadata for response headers
+        request['x_total_count'] = total_count
+        return all_objects
 
     async def get_object(self, request: web.Request):
         data, access, obj_id, query, search = await self._parse_common_data_from_request(request)
@@ -129,6 +150,7 @@ class BaseObjectApi(BaseApi):
         await self.delete_object(request)
 
         obj_id = request.match_info.get(self.id_property)
+        self.log.debug("deleting: %s", obj_id)
         await self._api_manager.remove_object_from_disk_by_id(identifier=obj_id, ram_key=self.ram_key)
 
     async def _parse_common_data_from_request(self, request) -> (dict, dict, str, dict, dict):
