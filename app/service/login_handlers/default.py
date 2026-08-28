@@ -1,4 +1,6 @@
 import logging
+import time
+
 import ldap3
 
 from aiohttp import web
@@ -9,6 +11,33 @@ from app.service.interfaces.i_login_handler import LoginHandlerInterface
 from app.utility.config_util import verify_hash
 
 HANDLER_NAME = 'Default Login Handler'
+
+# Module-level lockout tracking
+_login_attempts = {}  # username -> list of monotonic timestamps
+_LOCKOUT_MAX_ATTEMPTS = 5
+_LOCKOUT_WINDOW_SECONDS = 300
+
+
+def _lockout_check(username):
+    """Returns True if the user is locked out (>= max failures in window)."""
+    if username not in _login_attempts:
+        return False
+    now = time.monotonic()
+    cutoff = now - _LOCKOUT_WINDOW_SECONDS
+    _login_attempts[username] = [t for t in _login_attempts[username] if t > cutoff]
+    return len(_login_attempts[username]) >= _LOCKOUT_MAX_ATTEMPTS
+
+
+def _record_failure(username):
+    """Record a failed login attempt."""
+    if username not in _login_attempts:
+        _login_attempts[username] = []
+    _login_attempts[username].append(time.monotonic())
+
+
+def _clear_failures(username):
+    """Clear failed attempts on successful login."""
+    _login_attempts.pop(username, None)
 
 
 class DefaultLoginHandler(LoginHandlerInterface):
@@ -22,16 +51,22 @@ class DefaultLoginHandler(LoginHandlerInterface):
         username = data.get('username')
         password = data.get('password')
         if username and password:
+            if _lockout_check(username):
+                self.log.warning('Account locked out due to too many failed attempts: %s', username)
+                raise web.HTTPTooManyRequests(text='Account temporarily locked due to too many failed login attempts')
+
             if self._ldap_config:
                 verified = await self._ldap_login(username, password)
             else:
                 verified = await self._check_credentials(request.app.user_map, username, password)
 
             if verified:
+                _clear_failures(username)
                 auth_svc = self.services.get('auth_svc')
                 if not auth_svc:
                     raise Exception('Auth service not available.')
                 await auth_svc.handle_successful_login(request, username)
+            _record_failure(username)
             self.log.debug('%s failed login attempt: ', username)
         raise web.HTTPFound('/')
 
