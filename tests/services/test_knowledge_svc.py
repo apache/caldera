@@ -64,6 +64,16 @@ class TestKnowledgeService:
         assert len(facts) == 1
         assert facts[0].value == 'udemo2'
 
+    async def test_update_fact_with_falsy_current_value(self, knowledge_svc, fire_event_mock):
+        await knowledge_svc.add_fact(Fact(trait='ftest', value='fdemo', score=0))
+        await knowledge_svc.update_fact(criteria=dict(trait='ftest'),
+                                        updates=dict(score=2, technique_id='T1234', not_a_field='ignored'))
+        facts = await knowledge_svc.get_facts(dict(trait='ftest'))
+        assert len(facts) == 1
+        assert facts[0].score == 2
+        assert facts[0].technique_id == 'T1234'
+        assert not hasattr(facts[0], 'not_a_field')
+
     async def test_update_relationship(self, knowledge_svc):
         dummy = Fact(trait='utest', value='udemo', score=1, collected_by=['thin_air'], technique_id='T1234')
         dummy2 = Fact(trait='utest2', value='udemo2', score=1, collected_by=['thin_air'], technique_id='T4321')
