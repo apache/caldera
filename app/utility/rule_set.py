@@ -15,8 +15,10 @@ class RuleSet:
     async def is_fact_allowed(self, fact):
         allowed = True
         for rule in await self._applicable_rules(fact):
-            if await self._is_ip_rule_match(rule, fact):
-                allowed = await self._rule_judgement(rule.action)
+            if await self._is_ip_rule(rule, fact):
+                # An IP rule must not fall back to regex matching: as a regex, '10.0.0.1' also matches '10.0.0.10'.
+                if await self._is_ip_rule_match(rule, fact):
+                    allowed = await self._rule_judgement(rule.action)
                 continue
             if await self._is_regex_rule_match(rule, fact):
                 allowed = await self._rule_judgement(rule.action)
@@ -69,6 +71,19 @@ class RuleSet:
     @staticmethod
     async def _is_regex_rule_match(rule, fact):
         return re.match(rule.match, fact.value)
+
+    async def _is_ip_rule(self, rule, fact):
+        """True when the rule match is an IPv4 address or network and the fact value is an IPv4 address.
+
+        Network-valued facts keep the regex fallback: _is_ip_rule_match never matches a rule address against a
+        fact network, and deciding on that alone would let a fact covering a denied address pass a DENY rule.
+        """
+        if rule.match == '.*':
+            return False
+        is_rule_ip = await self._is_ip_address(rule.match) or await self._is_ip_network(rule.match)
+        if not is_rule_ip:
+            return False
+        return await self._is_ip_address(fact.value)
 
     async def _is_ip_rule_match(self, rule, fact):
         """ We only match string-equivalent IP addresses, string-equivalent subnets in CIDR notation, and IP address
