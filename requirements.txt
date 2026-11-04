@@ -27,3 +27,4 @@ aioftp==0.27.2
 packaging==23.2
 croniter~=3.0.3
 setuptools==83.0.0
+docker~=6.1.0  # builder plugin (plugins/builder/requirements.txt)
