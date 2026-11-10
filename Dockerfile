@@ -59,6 +59,9 @@ ARG TZ="UTC"
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone
 
+# Install Docker SDK for Python (required by builder plugin)
+RUN pip3 install --break-system-packages --no-cache-dir docker
+
 # Install pip requirements
 RUN pip3 install --break-system-packages --no-cache-dir -r requirements.txt
 
