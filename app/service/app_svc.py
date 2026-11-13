@@ -33,7 +33,11 @@ class AppService(AppServiceInterface, BaseService):
     def __init__(self, application):
         self.application = application
         self.log = self.add_service('app_svc', self)
-        self.loop = asyncio.get_event_loop()
+        try:
+            self.loop = asyncio.get_event_loop()
+        except RuntimeError:
+            self.loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self.loop)
         self._errors = []
         self._loaded_plugins = []  # all plugins that were loaded, including disabled ones
 
