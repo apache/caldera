@@ -1,6 +1,7 @@
 tox
 pytest
 pytest-aiohttp==1.0.3
+# 0.26.x while tests/conftest.py uses the event_loop fixture; keep in sync with tox.ini
 pytest-asyncio==0.26.0
 coverage
 pre-commit
