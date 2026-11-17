@@ -162,7 +162,7 @@ The Caldera team highly reccommends standing up the Caldera server on a secure e
 
 ### Vulnerability Disclosures
 
-To report a security vulnerability, follow the [Apache Software Foundation security process](https://www.apache.org/security/). Please do not report vulnerabilities in public issues.
+To report a security issue, see [SECURITY.md](SECURITY.md). Apache Caldera follows the [Apache Software Foundation security process](https://www.apache.org/security/). Please do not report security issues in public GitHub issues.
 
 #### Recent Vulnerability Disclosures
 
