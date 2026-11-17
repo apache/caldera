@@ -39,9 +39,6 @@ of (this list is likely to be incomplete):
    reviewed. Some of them are operating system logos that are trademarks of
    their owners.
 
- - requirements.txt lists svglib, which is under the LGPL 3.0 (ASF Category
-   X). The debrief plugin uses it to render reports.
-
  - Plugins, including the web interface (magma), are git submodules hosted
    outside the ASF. They are not part of this source release and have not
    been reviewed for it. conf/default.yml enables several of them.

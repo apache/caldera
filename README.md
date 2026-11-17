@@ -96,6 +96,11 @@ LDAP login is optional. To use it, also install the LDAP requirements, which are
 pip3 install -r requirements-ldap.txt
 ```
 
+The debrief plugin, which `conf/default.yml` enables, needs the `svglib` package to build PDF reports. It is kept in a separate file because it is licensed under the LGPL 3.0:
+```Bash
+pip3 install -r requirements-debrief.txt
+```
+
 Finally, start the server.
 ```Bash
 python3 server.py --insecure --build

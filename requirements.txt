@@ -17,7 +17,6 @@ marshmallow-enum==1.5.1
 reportlab==4.0.4  # debrief
 rich==13.7.0
 lxml==6.1.0  # debrief
-svglib==1.5.1  # debrief
 Markdown==3.8.1  # training
 dnspython==2.9.2
 asyncssh==2.24.1
