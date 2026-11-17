@@ -174,3 +174,109 @@
       of your accepting any such warranty or additional liability.
 
    END OF TERMS AND CONDITIONS
+
+================================================================================
+APACHE CALDERA (INCUBATING) SUBCOMPONENTS
+================================================================================
+
+This product bundles the third-party components listed below. Each component
+is available under the license named in its entry. The full license texts are
+in the licenses/ directory, at the path given in each entry.
+
+Plugins are not part of this source release: they are git submodules and
+`git archive` does not include them.
+
+--------------------------------------------------------------------------------
+MIT License
+--------------------------------------------------------------------------------
+
+jQuery 1.12.4 (includes Sizzle)
+  Files:   static/jquery/jquery.js
+  Notice:  Copyright jQuery Foundation and other contributors
+  License: licenses/LICENSE-jquery-1.12.4.txt
+
+jQuery 3.3.1 (includes Sizzle)
+  Files:   static/jquery/jquery.min.js
+  Notice:  Copyright JS Foundation and other contributors
+  License: licenses/LICENSE-jquery-3.3.1.txt
+  Note:    The minified file was reformatted after it was copied in. Its
+           one-line banner refers to jquery.org/license and does not carry
+           the license text.
+
+jQuery UI theme images (1.12.x base theme icon set; exact release not recorded)
+  Files:   static/jquery/images/ui-icons_*_256x240.png
+  Notice:  Copyright jQuery Foundation and other contributors
+  License: licenses/LICENSE-jquery-ui.txt
+
+Alpine.js 3.1.0
+  Files:   static/js/lib/alpine.min.js
+  Notice:  Copyright (c) 2019-2021 Caleb Porzio and contributors
+  License: licenses/LICENSE-alpinejs.txt
+  Note:    The upstream minified build carries no copyright or license notice.
+           The bundled copy adds only an "eslint-disable" comment.
+
+Bulma 0.9.2 (includes minireset.css 0.0.6)
+  Files:   static/scss/bulma/** (Sass sources)
+           static/css/lib/custom-bulma.css and custom-bulma.css.map (compiled
+           from the Bulma sources and static/scss/custom-bulma.sass)
+  Notice:  Copyright (c) 2020 Jeremy Thomas (Bulma);
+           Copyright (c) 2016 Jeremy Thomas (minireset.css)
+  License: licenses/LICENSE-bulma.txt, licenses/LICENSE-minireset.txt
+
+bulma-toast 2.3.1
+  Files:   static/js/lib/bulma-toast.min.js
+  Notice:  Copyright (c) 2018 Rafael Franco
+  License: licenses/LICENSE-bulma-toast.txt
+  Note:    The minified banner names the MIT License but does not carry the
+           license text.
+
+@creativebulma/bulma-tooltip 1.2.0
+  Files:   static/css/lib/bulma-tooltip.min.css
+  Notice:  Copyright (c) 2020 CreativeBulma
+  License: licenses/LICENSE-bulma-tooltip.txt
+  Note:    Modified locally (one white-space value). The minified banner names
+           the MIT License but does not carry the license text.
+
+Muuri 0.8.0
+  Files:   static/js/lib/muuri.min.js
+  Notice:  Copyright (c) 2015-present, Haltu Oy;
+           Copyright (c) 2016-present, Niklas Rämö
+  License: licenses/LICENSE-muuri.txt
+
+Font Awesome Free 5.15.3 (CSS)
+  Files:   static/css/lib/fa-all.min.css
+  Notice:  Copyright (c) Font Awesome
+  License: licenses/LICENSE-font-awesome.txt
+
+--------------------------------------------------------------------------------
+ISC License
+--------------------------------------------------------------------------------
+
+canvas-confetti 1.5.1
+  Files:   static/js/lib/confetti.browser.min.js
+  Notice:  Copyright (c) 2020, Kiril Vatev
+  License: licenses/LICENSE-canvas-confetti.txt
+  Note:    This file was minified by the jsDelivr CDN from
+           dist/confetti.browser.js. Neither file carries the copyright
+           or license notice.
+
+--------------------------------------------------------------------------------
+WTFPL, Version 2
+--------------------------------------------------------------------------------
+
+MultiSelect (lou/multi-select) 0.9.12
+  Files:   static/jquery/jquery.multi-select.js (modified locally)
+           static/css/multi-select.css (modified locally from the upstream
+           css/multi-select.css)
+  Notice:  Copyright (c) 2012 Louis Cuny
+  License: licenses/LICENSE-multi-select.txt
+
+--------------------------------------------------------------------------------
+SIL Open Font License 1.1
+--------------------------------------------------------------------------------
+
+Font Awesome Free 5.15.3 (web fonts)
+  Files:   static/css/webfonts/fa-brands-400.*, fa-regular-400.*,
+           fa-solid-900.* (eot, svg, ttf, woff, woff2)
+  Notice:  Copyright (c) Font Awesome
+  License: licenses/LICENSE-font-awesome.txt
