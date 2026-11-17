@@ -1,6 +1,7 @@
 tox
 pytest
 pytest-aiohttp==1.0.3
+pytest-asyncio==0.26.0
 coverage
 pre-commit
 bandit
