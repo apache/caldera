@@ -1,0 +1,16 @@
+- id: 7c417cb6-ce97-49ea-8987-09d34e8df8b2
+  name: "Network interface configuration"
+  description: "View IP/DNS/routing configuration (CTID step 5)."
+  tactic: discovery
+  technique:
+    attack_id: T1016
+    name: "System Network Configuration Discovery"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          ipconfig /all
+    linux:
+      sh:
+        command: |
+          ip addr; ip route

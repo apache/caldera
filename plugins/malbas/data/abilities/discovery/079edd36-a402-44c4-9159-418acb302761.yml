@@ -1,0 +1,12 @@
+- id: 079edd36-a402-44c4-9159-418acb302761
+  name: "Query registry (read-only)"
+  description: "Read a benign registry key for host info (CTID step 17)."
+  tactic: discovery
+  technique:
+    attack_id: T1012
+    name: "Query Registry"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v ProductName

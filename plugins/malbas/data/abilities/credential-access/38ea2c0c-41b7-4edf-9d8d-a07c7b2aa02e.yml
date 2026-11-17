@@ -1,0 +1,14 @@
+- id: 38ea2c0c-41b7-4edf-9d8d-a07c7b2aa02e
+  name: "Password spraying (SIMULATED)"
+  description: "SIMULATED only. Writes a marker describing the spray pattern (one password across many accounts). No authentication is attempted, so no account can be locked. Self-cleans."
+  tactic: credential-access
+  technique:
+    attack_id: T1110.003
+    name: "Brute Force: Password Spraying"
+  platforms:
+    windows:
+      psh:
+        command: |
+          Set-Content "$env:TEMP\apt33_spray_marker.txt" 'SIMULATED spray pattern: one password across many accounts; no auth attempted'; Get-Content "$env:TEMP\apt33_spray_marker.txt"
+        cleanup: |
+          Remove-Item "$env:TEMP\apt33_spray_marker.txt" -Force

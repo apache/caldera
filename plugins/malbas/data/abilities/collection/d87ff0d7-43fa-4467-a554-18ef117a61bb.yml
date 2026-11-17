@@ -1,0 +1,18 @@
+- id: d87ff0d7-43fa-4467-a554-18ef117a61bb
+  name: Archive collected data
+  description: Stages benign placeholder files and compresses them into a ZIP archive, reproducing the real staging-and-archiving behavior that precedes exfiltration. Only files created by this test are archived; the stage directory and archive are removed on cleanup.
+  tactic: collection
+  technique:
+    attack_id: T1560.001
+    name: 'Archive Collected Data: Archive via Utility'
+  platforms:
+    windows:
+      psh:
+        command: |
+          $d="$env:TEMP\collect_stage"; New-Item -ItemType Directory -Force -Path $d | Out-Null
+          Set-Content "$d\notes.txt" "benign staged data"
+          Set-Content "$d\inventory.txt" "benign file inventory"
+          Compress-Archive -Path "$d\*" -DestinationPath "$env:TEMP\collected.zip" -Force
+          Get-Item "$env:TEMP\collected.zip"
+        cleanup: |
+          Remove-Item "$env:TEMP\collected.zip" -Force -ErrorAction SilentlyContinue; Remove-Item "$env:TEMP\collect_stage" -Recurse -Force -ErrorAction SilentlyContinue

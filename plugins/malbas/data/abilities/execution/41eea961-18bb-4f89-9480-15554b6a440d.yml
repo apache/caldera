@@ -1,0 +1,12 @@
+- id: 41eea961-18bb-4f89-9480-15554b6a440d
+  name: "Benign PowerShell execution"
+  description: "Run a benign PowerShell command (APT39 uses POWBAT-style PowerShell tooling). No download performed."
+  tactic: execution
+  technique:
+    attack_id: T1059.001
+    name: "Command and Scripting Interpreter: PowerShell"
+  platforms:
+    windows:
+      psh:
+        command: |
+          Write-Output ('APT39 emulation marker ' + (Get-Date))

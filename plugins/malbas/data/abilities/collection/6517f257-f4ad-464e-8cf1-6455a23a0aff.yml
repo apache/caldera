@@ -1,0 +1,14 @@
+- id: 6517f257-f4ad-464e-8cf1-6455a23a0aff
+  name: "Screen capture (SIMULATED)"
+  description: "SIMULATED only. Writes a marker representing a screenshot. No screen content is captured. Self-cleans."
+  tactic: collection
+  technique:
+    attack_id: T1113
+    name: "Screen Capture"
+  platforms:
+    windows:
+      psh:
+        command: |
+          Set-Content "$env:TEMP\a39_screen_marker.txt" 'SIMULATED screen capture - no image taken'
+        cleanup: |
+          Remove-Item "$env:TEMP\a39_screen_marker.txt" -Force

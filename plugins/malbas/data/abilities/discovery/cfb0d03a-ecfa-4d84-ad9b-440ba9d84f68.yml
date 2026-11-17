@@ -1,0 +1,16 @@
+- id: cfb0d03a-ecfa-4d84-ad9b-440ba9d84f68
+  name: "Remote system discovery"
+  description: "List systems seen in the local ARP cache (APT39 used NBTscan-style network discovery)."
+  tactic: discovery
+  technique:
+    attack_id: T1018
+    name: "Remote System Discovery"
+  platforms:
+    windows:
+      psh:
+        command: |
+          arp -a
+    linux:
+      sh:
+        command: |
+          ip neigh 2>/dev/null

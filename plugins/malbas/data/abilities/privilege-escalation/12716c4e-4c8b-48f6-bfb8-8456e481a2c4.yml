@@ -1,0 +1,15 @@
+- id: 12716c4e-4c8b-48f6-bfb8-8456e481a2c4
+  name: UAC bypass (SIMULATED)
+  description: SIMULATED. Writes a harmless marker standing in for a User Account Control bypass; no registry hijack, auto-elevating binary or real elevation is performed. Kept simulated because a live version is a working privilege-escalation primitive. Requires manager approval (see docs/simulated-techniques.md).
+  tactic: privilege-escalation
+  technique:
+    attack_id: T1548.002
+    name: 'Abuse Elevation Control Mechanism: Bypass User Account Control'
+  platforms:
+    windows:
+      psh:
+        command: |
+          "SIMULATED UAC bypass. No registry hijack or auto-elevation performed. Requires manager approval to run live." | Out-File "$env:TEMP\mal-bas-SIMULATED-T1548.002.txt" -Encoding ascii
+          Get-Content "$env:TEMP\mal-bas-SIMULATED-T1548.002.txt"
+        cleanup: |
+          Remove-Item "$env:TEMP\mal-bas-SIMULATED-T1548.002.txt" -Force -ErrorAction SilentlyContinue

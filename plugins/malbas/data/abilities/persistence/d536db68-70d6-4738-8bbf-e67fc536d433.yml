@@ -1,0 +1,14 @@
+- id: d536db68-70d6-4738-8bbf-e67fc536d433
+  name: "Windows service creation"
+  description: "Create, start and delete a benign service, representing UNC1860 backdoor service persistence. Self-cleans."
+  tactic: persistence
+  technique:
+    attack_id: T1543.003
+    name: "Create or Modify System Process: Windows Service"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          sc create CalderaUNC binPath= "cmd /c echo emulation" start= demand & sc start CalderaUNC
+        cleanup: |
+          sc delete CalderaUNC

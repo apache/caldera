@@ -1,0 +1,15 @@
+- id: 6109cced-b073-48b3-a9b7-3e228d0dd4ac
+  name: "Indicator removal: file deletion"
+  description: Creates a benign indicator file and then deletes it. Real indicator-removal behavior performed on a file we dropped ourselves, so nothing of value is lost. Leaves file-create and file-delete telemetry (Sysmon EID 11/23). No cleanup required (it deletes itself).
+  tactic: defense-evasion
+  technique:
+    attack_id: T1070.004
+    name: 'Indicator Removal: File Deletion'
+  platforms:
+    windows:
+      psh:
+        command: |
+          $f = "$env:TEMP\mal-bas-indicator.txt"
+          "mal-bas benign indicator" | Out-File $f -Encoding ascii
+          Remove-Item $f -Force
+          Test-Path $f

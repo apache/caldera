@@ -1,0 +1,12 @@
+- id: 02784089-fe7d-4a30-b3af-797abab45779
+  name: "Obfuscate/decode benign payload"
+  description: "Base64-encode then decode a benign string, representing payload obfuscation. Self-cleans."
+  tactic: defense-evasion
+  technique:
+    attack_id: T1027
+    name: "Obfuscated Files or Information"
+  platforms:
+    windows:
+      psh:
+        command: |
+          $e=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes('StealthFalcon emulation')); [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($e))

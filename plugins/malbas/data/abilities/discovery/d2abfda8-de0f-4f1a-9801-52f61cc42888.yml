@@ -1,0 +1,16 @@
+- id: d2abfda8-de0f-4f1a-9801-52f61cc42888
+  name: Local account enumeration
+  description: List local user accounts on the host.
+  tactic: discovery
+  technique:
+    attack_id: T1087.001
+    name: "Account Discovery: Local Account"
+  platforms:
+    windows:
+      psh:
+        command: |
+          net user; Get-LocalUser | Select-Object Name,Enabled
+    linux:
+      sh:
+        command: |
+          cut -d: -f1 /etc/passwd

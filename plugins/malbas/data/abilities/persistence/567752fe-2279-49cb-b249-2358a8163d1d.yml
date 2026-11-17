@@ -1,0 +1,14 @@
+- id: 567752fe-2279-49cb-b249-2358a8163d1d
+  name: "Cron persistence (Linux)"
+  description: "[Custom] Add a benign cron entry, then remove it on cleanup (no simple inline ART test for this sub-technique)."
+  tactic: persistence
+  technique:
+    attack_id: T1053.003
+    name: "Scheduled Task/Job: Cron"
+  platforms:
+    linux:
+      sh:
+        command: |
+          ( crontab -l 2>/dev/null; echo '@reboot echo caldera-muddywater-emulation' ) | crontab -
+        cleanup: |
+          crontab -l 2>/dev/null | grep -v 'caldera-muddywater-emulation' | crontab -

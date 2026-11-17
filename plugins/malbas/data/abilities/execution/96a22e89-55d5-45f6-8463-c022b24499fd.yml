@@ -1,0 +1,14 @@
+- id: 96a22e89-55d5-45f6-8463-c022b24499fd
+  name: "Service creation and execution"
+  description: "Create, start and delete a benign service, representing PsExec-style service execution (CTID step 39). Self-cleans."
+  tactic: execution
+  technique:
+    attack_id: T1569.002
+    name: "System Services: Service Execution"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          sc create CalderaOilRig binPath= "cmd /c echo emulation" start= demand & sc start CalderaOilRig
+        cleanup: |
+          sc delete CalderaOilRig

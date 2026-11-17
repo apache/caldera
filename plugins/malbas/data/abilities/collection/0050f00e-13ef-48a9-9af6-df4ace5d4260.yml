@@ -1,0 +1,14 @@
+- id: 0050f00e-13ef-48a9-9af6-df4ace5d4260
+  name: "Keylogging (SIMULATED)"
+  description: "SIMULATED only. Writes a marker representing keylogger deployment. No keystrokes are captured. Self-cleans."
+  tactic: collection
+  technique:
+    attack_id: T1056.001
+    name: "Input Capture: Keylogging"
+  platforms:
+    windows:
+      psh:
+        command: |
+          Set-Content "$env:TEMP\mp_keylog_marker.txt" 'SIMULATED keylogger - no input captured'
+        cleanup: |
+          Remove-Item "$env:TEMP\mp_keylog_marker.txt" -Force

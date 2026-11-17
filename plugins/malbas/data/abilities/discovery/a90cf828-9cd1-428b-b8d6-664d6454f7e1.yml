@@ -1,0 +1,16 @@
+- id: a90cf828-9cd1-428b-b8d6-664d6454f7e1
+  name: "Local administrators group discovery"
+  description: "List members of the local administrators group (CTID step 12)."
+  tactic: discovery
+  technique:
+    attack_id: T1069.001
+    name: "Permission Groups Discovery: Local Groups"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          net localgroup administrators
+    linux:
+      sh:
+        command: |
+          getent group sudo 2>/dev/null; getent group wheel 2>/dev/null

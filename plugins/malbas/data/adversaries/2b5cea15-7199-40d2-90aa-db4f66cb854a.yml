@@ -1,0 +1,15 @@
+id: 2b5cea15-7199-40d2-90aa-db4f66cb854a
+name: APT-MustangPanda-v1
+description: >-
+  Mustang Panda (G0129, aka Camaro Dragon / Earth Preta / Stately Taurus / BRONZE PRESIDENT / TA416), a China-nexus espionage group. Observed by Check Point against Qatari government and energy entities in March 2026 using PlugX and Cobalt Strike. Lab-safe emulation. DLL side-loading, keylogging, screen capture and exfiltration are simulated with benign markers; Run-key persistence and data archiving run for real and self-clean. See docs/APT-MustangPanda-v1.md.
+atomic_ordering:
+  - 1cd790be-029e-41cb-987f-5f99f99bcced
+  - 63e21bd2-1d6b-4029-ace8-3813e2b60dbb
+  - 4be944d7-1c96-4585-9a77-4e86da8b1563
+  - 7ec4cf16-fa2c-4658-8dd0-850c033e71af
+  - 39d0cc78-07a5-4aa1-9ae3-399ff9a7a8d6
+  - c852734d-bdb7-490a-9142-76b183d7c2a1
+  - 0050f00e-13ef-48a9-9af6-df4ace5d4260
+  - 7bcc8026-b8a4-4645-ae19-c7147562b7a5
+  - d87ff0d7-43fa-4467-a554-18ef117a61bb
+  - aed193f2-c0ef-4bd4-8e9a-7014136c1c58

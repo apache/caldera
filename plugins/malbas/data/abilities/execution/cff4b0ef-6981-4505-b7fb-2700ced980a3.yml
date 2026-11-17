@@ -1,0 +1,12 @@
+- id: cff4b0ef-6981-4505-b7fb-2700ced980a3
+  name: "Benign PowerShell execution"
+  description: "Run a benign PowerShell command (APT35 uses POWERSTAR/CharmPower). No download performed."
+  tactic: execution
+  technique:
+    attack_id: T1059.001
+    name: "Command and Scripting Interpreter: PowerShell"
+  platforms:
+    windows:
+      psh:
+        command: |
+          Write-Output ('APT35 emulation marker ' + (Get-Date))

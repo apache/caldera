@@ -1,0 +1,14 @@
+- id: 88b174be-cc50-4287-8df7-eacf34abfbd0
+  name: "Scheduled task persistence"
+  description: "Register a benign scheduled task, then delete it on cleanup."
+  tactic: persistence
+  technique:
+    attack_id: T1053.005
+    name: "Scheduled Task/Job: Scheduled Task"
+  platforms:
+    windows:
+      psh:
+        command: |
+          schtasks /create /tn CalderaEmuA39 /tr "cmd.exe /c echo emulation" /sc onlogon /f
+        cleanup: |
+          schtasks /delete /tn CalderaEmuA39 /f

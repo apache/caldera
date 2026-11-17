@@ -1,0 +1,14 @@
+- id: a3436981-a8a2-4e56-9b3b-0613e8ec5f46
+  name: Web shell drop (benign placeholder)
+  description: Writes a file with a web-shell extension and harmless, non-executable content to a temp directory (not a live web root), reproducing the detectable file-write signal without creating anything executable. Self-cleans.
+  tactic: persistence
+  technique:
+    attack_id: T1505.003
+    name: 'Server Software Component: Web Shell'
+  platforms:
+    windows:
+      cmd:
+        command: |
+          echo ^<%-- benign BAS placeholder - not executable --%^> > "%TEMP%\owa_theme.aspx" & dir "%TEMP%\owa_theme.aspx"
+        cleanup: |
+          del /f /q "%TEMP%\owa_theme.aspx"

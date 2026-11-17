@@ -1,0 +1,10 @@
+id: 74e363fd-f358-4786-82ab-2744bcaf848d
+name: Tactic-Command-and-Control
+description: 'Tactic test library: Command-and-Control (command-and-control). A standalone profile that
+  exercises every Command-and-Control technique currently in the library, one ability per technique, independent
+  of any adversary chain. Built for MSSP coverage checks and internal control validation. 3 techniques,
+  all real. Lab-safe; any persistence self-cleans. See docs/tactic-libraries.md.'
+atomic_ordering:
+- 5cc81ab8-9449-42bd-b97c-2b1e7b82f982
+- d11e24ab-ccb8-427e-ac25-ede73e95868d
+- 42a2d96d-fab4-4cfd-afb7-bea924cbfa50

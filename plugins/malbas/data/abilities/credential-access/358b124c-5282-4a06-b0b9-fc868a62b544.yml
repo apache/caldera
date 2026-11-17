@@ -1,0 +1,14 @@
+- id: 358b124c-5282-4a06-b0b9-fc868a62b544
+  name: "LSASS dump (SIMULATED)"
+  description: "SIMULATED only. Writes a marker representing an LSASS dump. No process memory is accessed. Self-cleans."
+  tactic: credential-access
+  technique:
+    attack_id: T1003.001
+    name: "OS Credential Dumping: LSASS Memory"
+  platforms:
+    windows:
+      psh:
+        command: |
+          Set-Content "$env:TEMP\sf_lsass_marker.txt" 'SIMULATED LSASS dump - no memory accessed'
+        cleanup: |
+          Remove-Item "$env:TEMP\sf_lsass_marker.txt" -Force

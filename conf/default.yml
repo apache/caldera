@@ -34,12 +34,16 @@ objects.planners.default: atomic
 plugins:
 - access
 - atomic
+- builder
 - compass
 - debrief
+- emu
 - fieldmanual
+- malbas
 - manx
 - response
 - sandcat
+- ssl
 - stockpile
 - training
 port: 8888

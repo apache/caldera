@@ -1,0 +1,16 @@
+- id: 4f3db7e1-7f98-405c-a479-c3f96c992f71
+  name: Host system information
+  description: Collect OS, hostname and hardware details, as MuddyWater does for host triage.
+  tactic: discovery
+  technique:
+    attack_id: T1082
+    name: "System Information Discovery"
+  platforms:
+    windows:
+      psh:
+        command: |
+          systeminfo
+    linux:
+      sh:
+        command: |
+          uname -a; cat /etc/os-release

@@ -1,0 +1,15 @@
+id: 09f94882-f4b7-4252-9f04-0c31c0ea2e29
+name: APT-APT39-v1
+description: >-
+  APT39 (G0087, aka Chafer / Remix Kitten / ITG07), an Iran (MOIS, via the Rana Intelligence Computing front) surveillance group targeting telecom, travel and hospitality, airlines and government across the Middle East. Fills the transportation-sector gap in this library. Lab-safe emulation. Web shell, credential dumping, keylogging and screen capture are simulated with benign markers; scheduled-task persistence and data archiving run for real and self-clean. See docs/APT-APT39-v1.md.
+atomic_ordering:
+  - 11afca50-2679-45af-b593-eca554b5eaf7
+  - 62585c51-d5c0-46a9-8bcd-a66428d9aa56
+  - cfb0d03a-ecfa-4d84-ad9b-440ba9d84f68
+  - a9eca6d8-5692-46fa-a126-789e5c41dfc2
+  - 41eea961-18bb-4f89-9480-15554b6a440d
+  - 88b174be-cc50-4287-8df7-eacf34abfbd0
+  - 1dce9bbe-ada5-473f-86e2-2eec3fe5f987
+  - 5519a3b2-af88-433a-ab39-1984e34d794e
+  - 6517f257-f4ad-464e-8cf1-6455a23a0aff
+  - 3da5761b-2bfc-42ea-9df8-e61777b7a9d2

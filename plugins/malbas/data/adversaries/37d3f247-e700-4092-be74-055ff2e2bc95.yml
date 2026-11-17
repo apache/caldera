@@ -1,0 +1,14 @@
+id: 37d3f247-e700-4092-be74-055ff2e2bc95
+name: APT-APT33-v1
+description: >-
+  APT33 (G0064, aka Elfin / Peach Sandstorm / Refined Kitten / HOLMIUM), an Iran (IRGC) espionage group active against aviation, energy/petrochemical, satellite and government targets in Saudi Arabia, UAE and beyond. Lab-safe emulation. Password spray, valid-account reuse and ingress transfer are simulated with benign markers; the create-account and Run-key steps run for real and self-clean. See docs/APT-APT33-v1.md.
+atomic_ordering:
+  - bee40186-a249-4892-bbd7-7bbc9d41f664
+  - 3a127f69-44c3-4172-8e84-047dbe03e99a
+  - 5f84516b-347c-419e-917e-b3ef471adc15
+  - a25d4f3a-8d56-48b4-ac15-f3b6ef6ac1d9
+  - f08b57d7-be1f-4ee7-9f5f-6cae97b549fa
+  - 38ea2c0c-41b7-4edf-9d8d-a07c7b2aa02e
+  - 45e0bf17-3448-4a27-9753-b2a03ef3e30d
+  - bddb57be-5628-44d2-a431-19aeb31e852b
+  - 5cc81ab8-9449-42bd-b97c-2b1e7b82f982

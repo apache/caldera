@@ -1,0 +1,17 @@
+- id: b5ff5fb4-d9ab-469b-b54a-156bf51a6f3b
+  name: Browser credential store access (read-only)
+  description: 'Locates and reads metadata of the browser credential store (Chrome Login Data / Firefox profile). This is the real first step of browser credential theft (accessing the store) performed read-only: the store is never copied, opened for its contents, or decrypted, so no credentials are exposed. Leaves file-access telemetry.'
+  tactic: credential-access
+  technique:
+    attack_id: T1555.003
+    name: 'Credentials from Password Stores: Credentials from Web Browsers'
+  platforms:
+    windows:
+      psh:
+        command: |
+          $p="$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Login Data"
+          if (Test-Path $p) { $i=Get-Item $p; Write-Output ("Chrome credential store accessed: {0} ({1} bytes, modified {2})" -f $p,$i.Length,$i.LastWriteTime) } else { Write-Output "No Chrome credential store found" }
+    linux:
+      sh:
+        command: |
+          for f in "$HOME/.mozilla/firefox" "$HOME/.config/google-chrome"; do [ -e "$f" ] && echo "Browser credential store accessed: $f" || echo "Not found: $f"; done

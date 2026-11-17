@@ -1,0 +1,16 @@
+- id: 62585c51-d5c0-46a9-8bcd-a66428d9aa56
+  name: "Local account discovery"
+  description: "Enumerate local user accounts."
+  tactic: discovery
+  technique:
+    attack_id: T1087.001
+    name: "Account Discovery: Local Account"
+  platforms:
+    windows:
+      psh:
+        command: |
+          Get-LocalUser | Select-Object Name,Enabled
+    linux:
+      sh:
+        command: |
+          cut -d: -f1 /etc/passwd

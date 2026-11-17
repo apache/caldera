@@ -1,0 +1,16 @@
+- id: 4be944d7-1c96-4585-9a77-4e86da8b1563
+  name: Malicious file execution (lab-safe)
+  description: Writes a benign lure script to disk and executes it, reproducing the user-execution pattern (a dropped file spawning a child process). The script is harmless and both it and its output are removed on cleanup. Leaves file-create (Sysmon EID 11) and process-create (EID 1) telemetry.
+  tactic: execution
+  technique:
+    attack_id: T1204.002
+    name: 'User Execution: Malicious File'
+  platforms:
+    windows:
+      psh:
+        command: |
+          Set-Content "$env:TEMP\invoice_update.bat" '@echo benign lure executed > "%TEMP%\lure_opened.txt"'
+          Start-Process -FilePath "$env:TEMP\invoice_update.bat" -WindowStyle Hidden -Wait
+          Get-Content "$env:TEMP\lure_opened.txt"
+        cleanup: |
+          Remove-Item "$env:TEMP\invoice_update.bat","$env:TEMP\lure_opened.txt" -Force -ErrorAction SilentlyContinue

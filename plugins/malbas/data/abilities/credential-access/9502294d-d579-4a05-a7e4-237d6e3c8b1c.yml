@@ -1,0 +1,14 @@
+- id: 9502294d-d579-4a05-a7e4-237d6e3c8b1c
+  name: "LSASS dump (SIMULATED)"
+  description: "SIMULATED only: writes a marker file representing where an LSASS dump would be staged. No process memory is accessed (CTID step 30)."
+  tactic: credential-access
+  technique:
+    attack_id: T1003.001
+    name: "OS Credential Dumping: LSASS Memory"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          echo [SIMULATED - no memory accessed] > "%TEMP%\lsass_sim.txt" & type "%TEMP%\lsass_sim.txt"
+        cleanup: |
+          del /f /q "%TEMP%\lsass_sim.txt"

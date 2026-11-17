@@ -1,0 +1,12 @@
+- id: cbb069aa-f343-459c-9721-4e9b011b60e6
+  name: Benign PowerShell execution
+  description: Run a benign PowerShell command to confirm PowerShell execution is possible, the interpreter MuddyWater relies on. No download is performed.
+  tactic: execution
+  technique:
+    attack_id: T1059.001
+    name: "Command and Scripting Interpreter: PowerShell"
+  platforms:
+    windows:
+      psh:
+        command: |
+          powershell.exe -NoProfile -Command "Write-Output ('MuddyWater emulation marker: ' + (Get-Date))"

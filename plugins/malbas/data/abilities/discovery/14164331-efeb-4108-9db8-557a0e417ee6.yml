@@ -1,0 +1,16 @@
+- id: 14164331-efeb-4108-9db8-557a0e417ee6
+  name: "Remote system discovery"
+  description: "Resolve a host / enumerate reachable systems (CTID step 20)."
+  tactic: discovery
+  technique:
+    attack_id: T1018
+    name: "Remote System Discovery"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          nslookup . 2>nul & net view 2>nul
+    linux:
+      sh:
+        command: |
+          nslookup localhost 2>/dev/null; ip neigh 2>/dev/null

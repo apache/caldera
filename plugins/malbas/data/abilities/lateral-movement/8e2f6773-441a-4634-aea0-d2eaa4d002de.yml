@@ -1,0 +1,15 @@
+- id: 8e2f6773-441a-4634-aea0-d2eaa4d002de
+  name: SMB admin share access
+  description: Connects to the C$ admin share on an authorized lab host (#{target.host}) and lists a directory, using the current security context. Real SMB lateral access; benign, read-only, and the mapping is removed on cleanup. Leaves logon (EID 4624) and SMB telemetry on the target.
+  tactic: lateral-movement
+  technique:
+    attack_id: T1021.002
+    name: 'Remote Services: SMB/Windows Admin Shares'
+  platforms:
+    windows:
+      psh:
+        command: |
+          net use \\#{target.host}\C$ 2>&1
+          Get-ChildItem \\#{target.host}\C$\Windows\Temp -ErrorAction SilentlyContinue | Select-Object -First 3
+        cleanup: |
+          net use \\#{target.host}\C$ /delete 2>&1 | Out-Null

@@ -1,0 +1,17 @@
+- id: 1e0415cd-b70d-44fa-86e6-228b8f9e5634
+  name: "Network configuration discovery"
+  description: "[ART-derived: T1016 'System Network Configuration Discovery on Windows'] Enumerate IP, interfaces, ARP and NetBIOS config."
+  tactic: discovery
+  technique:
+    attack_id: T1016
+    name: "System Network Configuration Discovery"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          ipconfig /all & netsh interface show interface & arp -a & nbtstat -n & net config
+    linux:
+      sh:
+        command: |
+          ip addr; ip route
+          

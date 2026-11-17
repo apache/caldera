@@ -1,0 +1,16 @@
+- id: 01d2da9e-8f3a-4192-b144-b156fac83700
+  name: Lateral tool transfer over SMB
+  description: Writes a benign file locally and copies it to the C$ admin share of an authorized lab host (#{target.host}). Real lateral tool transfer; the file is harmless and both copies are removed on cleanup. Leaves file-create telemetry on the target.
+  tactic: lateral-movement
+  technique:
+    attack_id: T1570
+    name: 'Lateral Tool Transfer'
+  platforms:
+    windows:
+      psh:
+        command: |
+          "mal-bas benign transfer" | Out-File -FilePath $env:TEMP\mal-bas-lt.txt -Encoding ascii
+          Copy-Item $env:TEMP\mal-bas-lt.txt \\#{target.host}\C$\Windows\Temp\mal-bas-lt.txt
+        cleanup: |
+          Remove-Item \\#{target.host}\C$\Windows\Temp\mal-bas-lt.txt -Force -ErrorAction SilentlyContinue
+          Remove-Item $env:TEMP\mal-bas-lt.txt -Force -ErrorAction SilentlyContinue

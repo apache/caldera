@@ -1,0 +1,14 @@
+- id: 98823aad-6349-4de7-aaee-fd06e557a4bb
+  name: "Current user context"
+  description: "[ART-derived: T1033 'GetCurrent User with PowerShell Script'] Identify the current user; writes and reads a temp file, then cleans up."
+  tactic: discovery
+  technique:
+    attack_id: T1033
+    name: "System Owner/User Discovery"
+  platforms:
+    windows:
+      psh:
+        command: |
+          [System.Security.Principal.WindowsIdentity]::GetCurrent() | Out-File -FilePath $env:TEMP\CurrentUserObject.txt; Get-Content $env:TEMP\CurrentUserObject.txt
+        cleanup: |
+          Remove-Item $env:TEMP\CurrentUserObject.txt -Force

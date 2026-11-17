@@ -1,0 +1,14 @@
+- id: c852734d-bdb7-490a-9142-76b183d7c2a1
+  name: "Registry Run key persistence"
+  description: "Add a benign Run key, then remove it on cleanup."
+  tactic: persistence
+  technique:
+    attack_id: T1547.001
+    name: "Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder"
+  platforms:
+    windows:
+      psh:
+        command: |
+          reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v CalderaEmuMP /t REG_SZ /d calc.exe /f
+        cleanup: |
+          reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v CalderaEmuMP /f

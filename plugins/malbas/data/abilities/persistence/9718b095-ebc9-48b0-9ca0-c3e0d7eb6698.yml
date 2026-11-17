@@ -1,0 +1,20 @@
+- id: 9718b095-ebc9-48b0-9ca0-c3e0d7eb6698
+  name: Web shell drop (benign placeholder)
+  description: Writes a file with a web-shell extension and harmless, non-executable content to a temp directory (not a live web root). Reproduces the detectable signal of a web-shell being written (a server-script file appearing on disk) without creating anything executable. Self-cleans. Windows and Linux.
+  tactic: persistence
+  technique:
+    attack_id: T1505.003
+    name: 'Server Software Component: Web Shell'
+  platforms:
+    windows:
+      psh:
+        command: |
+          Set-Content "$env:TEMP\outlook_themes.aspx" "<%-- benign BAS placeholder, not executable --%>"; Get-Item "$env:TEMP\outlook_themes.aspx"
+        cleanup: |
+          Remove-Item "$env:TEMP\outlook_themes.aspx" -Force -ErrorAction SilentlyContinue
+    linux:
+      sh:
+        command: |
+          echo '<?php /* benign BAS placeholder - not executable */ ?>' > /tmp/status.php; ls -l /tmp/status.php
+        cleanup: |
+          rm -f /tmp/status.php

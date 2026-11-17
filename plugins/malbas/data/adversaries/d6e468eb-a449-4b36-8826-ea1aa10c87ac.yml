@@ -1,0 +1,15 @@
+id: d6e468eb-a449-4b36-8826-ea1aa10c87ac
+name: APT-MuddyWater-v2
+description: >-
+  MuddyWater (G0069) hybrid emulation. Uses real Atomic Red Team test commands where they exist (marked [ART-derived] with the source test), and custom abilities for gaps and lab-safe simulations (marked [Custom]). Discovery-weighted, lab-safe; persistence self-cleans; no credential dumping or destructive steps. See docs/APT-MuddyWater-v2.md.
+atomic_ordering:
+  - 7a44ff5a-7a76-4d39-b1d7-04e8bf463fdb
+  - 43714f10-0976-4270-aad4-b173e9c7bdb4
+  - 1e0415cd-b70d-44fa-86e6-228b8f9e5634
+  - 7404c784-7671-451c-b3e1-dd659ec715ef
+  - 9065d8ea-a87f-4b4e-9aa5-2401c553c8e5
+  - df007055-b367-45b4-ae25-5a170e3c8a62
+  - 4c029123-742c-4922-9004-1b326a632a35
+  - 57525b1f-be66-40eb-9f46-2985bd2d74a8
+  - dcdfecd3-12b4-4666-8e55-db745186d766
+  - 567752fe-2279-49cb-b249-2358a8163d1d

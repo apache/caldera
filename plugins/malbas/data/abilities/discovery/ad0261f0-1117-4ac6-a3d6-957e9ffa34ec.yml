@@ -1,0 +1,16 @@
+- id: ad0261f0-1117-4ac6-a3d6-957e9ffa34ec
+  name: "Running process discovery"
+  description: "List running processes (CTID step 14)."
+  tactic: discovery
+  technique:
+    attack_id: T1057
+    name: "Process Discovery"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          tasklist
+    linux:
+      sh:
+        command: |
+          ps aux

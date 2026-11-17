@@ -1,0 +1,11 @@
+id: ac28ad34-66f1-48aa-afc7-3eb29a016579
+name: Tactic-Privilege-Escalation
+description: 'Tactic test library: Privilege Escalation (privilege-escalation). Standalone profile that
+  exercises the Privilege Escalation techniques in the library, one ability per technique, independent
+  of any adversary chain. For MSSP coverage checks and internal control validation. 4 techniques, 2 simulated
+  (see docs/simulated-techniques.md).'
+atomic_ordering:
+- 598e6bdd-5082-4dfd-8a35-d7a4c09384cf
+- d536db68-70d6-4738-8bbf-e67fc536d433
+- 12716c4e-4c8b-48f6-bfb8-8456e481a2c4
+- 4122318d-f825-4d02-92a6-ac36187dbbaa

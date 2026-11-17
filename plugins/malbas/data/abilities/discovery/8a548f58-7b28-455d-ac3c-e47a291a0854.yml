@@ -1,0 +1,16 @@
+- id: 8a548f58-7b28-455d-ac3c-e47a291a0854
+  name: Network configuration discovery
+  description: Enumerate IP, routing and DNS configuration.
+  tactic: discovery
+  technique:
+    attack_id: T1016
+    name: "System Network Configuration Discovery"
+  platforms:
+    windows:
+      psh:
+        command: |
+          ipconfig /all; route print
+    linux:
+      sh:
+        command: |
+          ip addr; ip route; cat /etc/resolv.conf

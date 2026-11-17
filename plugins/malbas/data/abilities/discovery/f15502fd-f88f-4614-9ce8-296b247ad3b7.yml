@@ -1,0 +1,12 @@
+- id: f15502fd-f88f-4614-9ce8-296b247ad3b7
+  name: "Domain group discovery"
+  description: "Enumerate domain groups incl. Domain Admins. Fails harmlessly off-domain (CTID steps 7-9,19)."
+  tactic: discovery
+  technique:
+    attack_id: T1069.002
+    name: "Permission Groups Discovery: Domain Groups"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          net group /domain; net group "domain admins" /domain

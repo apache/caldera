@@ -1,0 +1,16 @@
+- id: 96e5a0cb-3afb-4a7c-9074-901614d300ab
+  name: "System service discovery"
+  description: "List running services (CTID step 15)."
+  tactic: discovery
+  technique:
+    attack_id: T1007
+    name: "System Service Discovery"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          sc query type= service state= all | findstr SERVICE_NAME
+    linux:
+      sh:
+        command: |
+          systemctl list-units --type=service --no-pager 2>/dev/null | head -40

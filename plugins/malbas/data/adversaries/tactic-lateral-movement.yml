@@ -1,0 +1,12 @@
+id: ba64fb4f-2909-483c-8c7b-0fa73acf2efd
+name: Tactic-Lateral-Movement
+description: 'Tactic test library: Lateral Movement (lateral-movement). Standalone profile that exercises
+  the Lateral Movement techniques in the library, one ability per technique, independent of any adversary
+  chain. For MSSP coverage checks and internal control validation. 6 techniques, 2 simulated (see docs/simulated-techniques.md).'
+atomic_ordering:
+- 8e2f6773-441a-4634-aea0-d2eaa4d002de
+- a0a06c24-9f37-46ac-9710-f5d9415cd166
+- 4f736f30-d6d7-4602-b486-a01daf6e1f12
+- 1e4d5fcf-286e-44de-b8ff-bcb87fb94722
+- 01d2da9e-8f3a-4192-b144-b156fac83700
+- c7853da6-9764-4fb9-9075-04c164cce1c1

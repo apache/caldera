@@ -1,0 +1,12 @@
+- id: 0cdaebfd-836b-4e9b-b258-a36ef99e871b
+  name: "Windows Credential Manager enumeration"
+  description: "List stored credential NAMES via cmdkey. Does not expose secrets (CTID step 21, lab-safe)."
+  tactic: credential-access
+  technique:
+    attack_id: T1555.004
+    name: "Credentials from Password Stores: Windows Credential Manager"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          cmdkey /list

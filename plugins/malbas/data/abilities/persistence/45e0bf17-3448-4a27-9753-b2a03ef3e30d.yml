@@ -1,0 +1,14 @@
+- id: 45e0bf17-3448-4a27-9753-b2a03ef3e30d
+  name: "Create local account"
+  description: "Create a disabled benign local account for persistence, then delete it on cleanup. Lab VMs only."
+  tactic: persistence
+  technique:
+    attack_id: T1136.001
+    name: "Create Account: Local Account"
+  platforms:
+    windows:
+      psh:
+        command: |
+          net user caldera_emu Lab-Emu-Pass1! /add; net user caldera_emu /active:no
+        cleanup: |
+          net user caldera_emu /delete

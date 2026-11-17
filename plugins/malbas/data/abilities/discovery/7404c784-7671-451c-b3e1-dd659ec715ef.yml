@@ -1,0 +1,16 @@
+- id: 7404c784-7671-451c-b3e1-dd659ec715ef
+  name: Current user context
+  description: Identify the current user and group membership.
+  tactic: discovery
+  technique:
+    attack_id: T1033
+    name: "System Owner/User Discovery"
+  platforms:
+    windows:
+      psh:
+        command: |
+          whoami /all
+    linux:
+      sh:
+        command: |
+          whoami; id

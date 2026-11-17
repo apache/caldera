@@ -1,0 +1,12 @@
+- id: 8d2094b3-34e9-4601-bd72-7c2982667699
+  name: "Host system information"
+  description: "Collect host and OS details."
+  tactic: discovery
+  technique:
+    attack_id: T1082
+    name: "System Information Discovery"
+  platforms:
+    windows:
+      psh:
+        command: |
+          hostname; systeminfo

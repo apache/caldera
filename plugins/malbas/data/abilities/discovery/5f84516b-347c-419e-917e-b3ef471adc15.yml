@@ -1,0 +1,16 @@
+- id: 5f84516b-347c-419e-917e-b3ef471adc15
+  name: "Remote system discovery"
+  description: "Enumerate reachable systems from the local ARP cache."
+  tactic: discovery
+  technique:
+    attack_id: T1018
+    name: "Remote System Discovery"
+  platforms:
+    windows:
+      psh:
+        command: |
+          arp -a
+    linux:
+      sh:
+        command: |
+          ip neigh 2>/dev/null; arp -a 2>/dev/null

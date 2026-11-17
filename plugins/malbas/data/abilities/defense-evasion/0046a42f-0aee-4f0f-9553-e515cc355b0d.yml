@@ -1,0 +1,17 @@
+- id: 0046a42f-0aee-4f0f-9553-e515cc355b0d
+  name: "Indicator removal: clear a custom event log"
+  description: Creates a dedicated custom event log, writes a benign event, then clears that custom log. Real log-clearing behavior (fires the log-cleared signal) without touching the Security log or destroying real audit data. Requires local admin. The custom log is removed on cleanup.
+  tactic: defense-evasion
+  technique:
+    attack_id: T1070.001
+    name: 'Indicator Removal: Clear Windows Event Logs'
+  platforms:
+    windows:
+      psh:
+        command: |
+          $log = "MalBASTest"
+          if (-not [System.Diagnostics.EventLog]::SourceExists("MalBAS")) { New-EventLog -LogName $log -Source "MalBAS" }
+          Write-EventLog -LogName $log -Source "MalBAS" -EventId 1000 -Message "mal-bas benign event"
+          Clear-EventLog -LogName $log
+        cleanup: |
+          Remove-EventLog -LogName "MalBASTest" -ErrorAction SilentlyContinue

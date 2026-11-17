@@ -1,0 +1,16 @@
+- id: d6c58651-3d12-47d6-930f-bc2ea871714c
+  name: "File and directory discovery"
+  description: "Enumerate files in the user profile (CTID step 40)."
+  tactic: discovery
+  technique:
+    attack_id: T1083
+    name: "File and Directory Discovery"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          dir %USERPROFILE%
+    linux:
+      sh:
+        command: |
+          ls -la $HOME

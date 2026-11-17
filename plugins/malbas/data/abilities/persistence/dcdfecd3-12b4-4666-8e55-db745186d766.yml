@@ -1,0 +1,14 @@
+- id: dcdfecd3-12b4-4666-8e55-db745186d766
+  name: "Scheduled task persistence"
+  description: "[ART-derived: T1053.005 'Scheduled Task Startup Script'] Create a benign onlogon scheduled task, then delete it on cleanup."
+  tactic: persistence
+  technique:
+    attack_id: T1053.005
+    name: "Scheduled Task/Job: Scheduled Task"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          schtasks /create /tn "T1053_005_OnLogon" /sc onlogon /tr "cmd.exe /c calc.exe" /f
+        cleanup: |
+          schtasks /delete /tn "T1053_005_OnLogon" /f

@@ -1,0 +1,21 @@
+id: 16e21445-e591-4e05-89c8-79c4b4db2571
+name: Tactic-Discovery
+description: 'Tactic test library: Discovery (discovery). A standalone profile that exercises every Discovery
+  technique currently in the library, one ability per technique, independent of any adversary chain. Built
+  for MSSP coverage checks and internal control validation. 14 techniques, all real. Lab-safe; any persistence
+  self-cleans. See docs/tactic-libraries.md.'
+atomic_ordering:
+- 11afca50-2679-45af-b593-eca554b5eaf7
+- 6dc8f9ea-c8c3-4bce-a367-dd1cfa714573
+- 1e0415cd-b70d-44fa-86e6-228b8f9e5634
+- 90a82b70-5143-493f-8c0f-5b3666737071
+- 63e21bd2-1d6b-4029-ace8-3813e2b60dbb
+- 96e5a0cb-3afb-4a7c-9074-901614d300ab
+- 0b90ac10-bbe5-457c-bbda-03a8da8ac1b7
+- 3d1c2dac-4a32-4d14-a39d-d88784344f2d
+- a90cf828-9cd1-428b-b8d6-664d6454f7e1
+- f15502fd-f88f-4614-9ce8-296b247ad3b7
+- 14164331-efeb-4108-9db8-557a0e417ee6
+- d6c58651-3d12-47d6-930f-bc2ea871714c
+- 079edd36-a402-44c4-9159-418acb302761
+- a25d4f3a-8d56-48b4-ac15-f3b6ef6ac1d9

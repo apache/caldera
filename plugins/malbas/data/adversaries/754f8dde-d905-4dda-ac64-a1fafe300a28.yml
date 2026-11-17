@@ -1,0 +1,13 @@
+id: 754f8dde-d905-4dda-ac64-a1fafe300a28
+name: APT-APT35-v1
+description: >-
+  APT35 / APT42 (G0059 / G1044, aka Charming Kitten / Mint Sandstorm / Phosphorus / TA453), an Iran (IRGC) espionage group focused on identity and mailbox phishing against government, diplomats, media and academia. Qatar named in analysis of leaked internal APT35 documents (Oct 2025, moderate confidence). Lab-safe emulation. Mailbox collection and web C2 are simulated with benign markers; the browser credential-store check reads no secrets; Run-key persistence self-cleans. See docs/APT-APT35-v1.md.
+atomic_ordering:
+  - 6f4ca981-bccb-4a06-b3e7-0051a214fcfc
+  - ad0c1bab-db6a-4655-a25f-cd46dcbcb14f
+  - 6dc8f9ea-c8c3-4bce-a367-dd1cfa714573
+  - cff4b0ef-6981-4505-b7fb-2700ced980a3
+  - 48c183d3-69b7-4bb5-89f1-6a4cf84b13e2
+  - 9d00b22e-f9f9-4b35-bf2b-dba1fbd6e918
+  - 74aec65b-cff7-4cc1-b4ea-ef02989d4a42
+  - 42a2d96d-fab4-4cfd-afb7-bea924cbfa50

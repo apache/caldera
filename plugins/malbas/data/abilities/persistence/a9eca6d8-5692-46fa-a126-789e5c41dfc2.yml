@@ -1,0 +1,14 @@
+- id: a9eca6d8-5692-46fa-a126-789e5c41dfc2
+  name: Web shell drop (benign placeholder)
+  description: Writes a file with a web-shell extension and harmless, non-executable content to a temp directory (not a live web root), reproducing the detectable file-write signal without creating anything executable. Self-cleans.
+  tactic: persistence
+  technique:
+    attack_id: T1505.003
+    name: 'Server Software Component: Web Shell'
+  platforms:
+    windows:
+      psh:
+        command: |
+          Set-Content "$env:TEMP\sharepoint_theme.aspx" "<%-- benign BAS placeholder, not executable --%>"; Get-Item "$env:TEMP\sharepoint_theme.aspx"
+        cleanup: |
+          Remove-Item "$env:TEMP\sharepoint_theme.aspx" -Force -ErrorAction SilentlyContinue

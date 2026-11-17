@@ -1,0 +1,14 @@
+- id: fc4b6213-27ee-4cc8-94b8-8420cf5f24d2
+  name: "Rundll32 proxy execution (SIMULATED)"
+  description: "SIMULATED only. Writes a marker representing rundll32 being abused to proxy execution. No rundll32 call is made. Self-cleans."
+  tactic: defense-evasion
+  technique:
+    attack_id: T1218.011
+    name: "System Binary Proxy Execution: Rundll32"
+  platforms:
+    windows:
+      psh:
+        command: |
+          Set-Content "$env:TEMP\sf_rundll_marker.txt" 'SIMULATED rundll32 proxy exec'
+        cleanup: |
+          Remove-Item "$env:TEMP\sf_rundll_marker.txt" -Force

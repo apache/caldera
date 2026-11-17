@@ -1,0 +1,12 @@
+- id: a0a06c24-9f37-46ac-9710-f5d9415cd166
+  name: RDP reachability check
+  description: Tests whether the Remote Desktop port (3389) on an authorized lab host (#{target.host}) is reachable. Non-interactive stand-in for RDP lateral movement; generates a real outbound connection to 3389 without opening a session. No cleanup required.
+  tactic: lateral-movement
+  technique:
+    attack_id: T1021.001
+    name: 'Remote Services: Remote Desktop Protocol'
+  platforms:
+    windows:
+      psh:
+        command: |
+          Test-NetConnection -ComputerName #{target.host} -Port 3389

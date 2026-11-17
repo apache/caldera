@@ -1,0 +1,17 @@
+- id: 7a44ff5a-7a76-4d39-b1d7-04e8bf463fdb
+  name: "Host system information"
+  description: "[ART-derived: T1082 'System Information Discovery'] Collect host/OS info and disk enumeration."
+  tactic: discovery
+  technique:
+    attack_id: T1082
+    name: "System Information Discovery"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          systeminfo & reg query HKLM\SYSTEM\CurrentControlSet\Services\Disk\Enum
+    linux:
+      sh:
+        command: |
+          uname -a; cat /etc/os-release
+          

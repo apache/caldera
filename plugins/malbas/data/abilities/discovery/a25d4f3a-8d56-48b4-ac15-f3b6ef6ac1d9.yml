@@ -1,0 +1,16 @@
+- id: a25d4f3a-8d56-48b4-ac15-f3b6ef6ac1d9
+  name: "Security software discovery"
+  description: "List registered antivirus products, which APT33 checks before acting."
+  tactic: discovery
+  technique:
+    attack_id: T1518.001
+    name: "Software Discovery: Security Software Discovery"
+  platforms:
+    windows:
+      psh:
+        command: |
+          Get-CimInstance -Namespace root/SecurityCenter2 -Class AntiVirusProduct | Select-Object displayName
+    linux:
+      sh:
+        command: |
+          ps -e -o comm= | grep -iE 'falcon|wazuh|osquery|clamd' || echo none-found

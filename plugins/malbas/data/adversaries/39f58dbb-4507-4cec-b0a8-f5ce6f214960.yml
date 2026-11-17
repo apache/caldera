@@ -1,0 +1,12 @@
+id: 39f58dbb-4507-4cec-b0a8-f5ce6f214960
+name: APT-UNC1860-v1
+description: >-
+  UNC1860 (parallels Scarred Manticore / Shrouded Snooper / Storm-0861), an Iran (likely MOIS) initial-access broker using passive backdoors, web shells and repurposed drivers against Middle East government and telecom. Mandiant reported it vetting accounts on Qatari domains (reconnaissance). Lab-safe emulation. Web shell, proxy/tunneling and web C2 are simulated with benign markers; the service-creation step runs for real and self-cleans. See docs/APT-UNC1860-v1.md.
+atomic_ordering:
+  - d1759013-88b6-400d-80c5-e9c88ab0f1a3
+  - a87f24d7-3204-4312-84c0-5c72b4fdbd74
+  - 926a1ba6-bd3a-45ea-a405-3425b08d2e8e
+  - 9718b095-ebc9-48b0-9ca0-c3e0d7eb6698
+  - d536db68-70d6-4738-8bbf-e67fc536d433
+  - d11e24ab-ccb8-427e-ac25-ede73e95868d
+  - 61e3374e-782d-4118-8b13-9e86ee2f8772

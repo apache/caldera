@@ -1,0 +1,16 @@
+- id: a90ae560-f25e-4fe1-b37c-da2edb3dbfdd
+  name: "Current user context"
+  description: "Identify the current user (CTID steps 2,3)."
+  tactic: discovery
+  technique:
+    attack_id: T1033
+    name: "System Owner/User Discovery"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          whoami
+    linux:
+      sh:
+        command: |
+          whoami; id

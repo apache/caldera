@@ -1,0 +1,16 @@
+- id: 63e21bd2-1d6b-4029-ace8-3813e2b60dbb
+  name: "Process discovery"
+  description: "List running processes."
+  tactic: discovery
+  technique:
+    attack_id: T1057
+    name: "Process Discovery"
+  platforms:
+    windows:
+      psh:
+        command: |
+          Get-Process | Select-Object -First 40 Name,Id
+    linux:
+      sh:
+        command: |
+          ps aux | head -40

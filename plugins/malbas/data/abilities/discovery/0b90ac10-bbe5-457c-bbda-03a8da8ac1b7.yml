@@ -1,0 +1,16 @@
+- id: 0b90ac10-bbe5-457c-bbda-03a8da8ac1b7
+  name: "Local account discovery"
+  description: "Enumerate local user accounts (CTID step 11)."
+  tactic: discovery
+  technique:
+    attack_id: T1087.001
+    name: "Account Discovery: Local Account"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          net user
+    linux:
+      sh:
+        command: |
+          cut -d: -f1 /etc/passwd

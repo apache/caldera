@@ -1,0 +1,16 @@
+- id: 5647d0ec-9079-41bf-bea4-13dcbe422bc2
+  name: "File deletion"
+  description: "Delete a benign marker file, representing OilRig cleanup activity (CTID steps 32,42-43)."
+  tactic: defense-evasion
+  technique:
+    attack_id: T1070.004
+    name: "Indicator Removal: File Deletion"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          echo marker > "%TEMP%\oilrig_marker.txt" & del /f /q "%TEMP%\oilrig_marker.txt"
+    linux:
+      sh:
+        command: |
+          touch /tmp/oilrig_marker && rm -f /tmp/oilrig_marker

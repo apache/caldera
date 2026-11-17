@@ -1,0 +1,16 @@
+- id: 90a82b70-5143-493f-8c0f-5b3666737071
+  name: "Active network connections"
+  description: "List active TCP/UDP connections (CTID step 13)."
+  tactic: discovery
+  technique:
+    attack_id: T1049
+    name: "System Network Connections Discovery"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          netstat -ano
+    linux:
+      sh:
+        command: |
+          ss -tunap 2>/dev/null || netstat -tunap

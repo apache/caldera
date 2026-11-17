@@ -1,0 +1,12 @@
+- id: c96701dc-7113-4826-b3a5-7dc622e865bb
+  name: "Network configuration discovery"
+  description: "View IP, DNS and routing configuration."
+  tactic: discovery
+  technique:
+    attack_id: T1016
+    name: "System Network Configuration Discovery"
+  platforms:
+    windows:
+      psh:
+        command: |
+          ipconfig /all

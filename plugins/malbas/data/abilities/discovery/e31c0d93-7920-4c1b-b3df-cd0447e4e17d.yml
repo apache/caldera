@@ -1,0 +1,16 @@
+- id: e31c0d93-7920-4c1b-b3df-cd0447e4e17d
+  name: Running process discovery
+  description: List running processes to spot security tooling.
+  tactic: discovery
+  technique:
+    attack_id: T1057
+    name: "Process Discovery"
+  platforms:
+    windows:
+      psh:
+        command: |
+          tasklist
+    linux:
+      sh:
+        command: |
+          ps aux

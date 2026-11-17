@@ -1,0 +1,14 @@
+id: 9aab93be-d1b9-4830-99aa-4ed95cd394ea
+name: APT-StealthFalcon-v1
+description: >-
+  Stealth Falcon (G0038, aka FruityArmor), widely attributed to the UAE; espionage against government, defense and dissidents. Check Point (June 2025) reported zero-day CVE-2025-33053 used against government and defense organizations including in Qatar. Lab-safe emulation. LOLBin/rundll32 abuse, process injection, LSASS access, keylogging and web C2 are simulated with benign markers; the obfuscate/decode step runs for real and self-cleans. See docs/APT-StealthFalcon-v1.md.
+atomic_ordering:
+  - 8d2094b3-34e9-4601-bd72-7c2982667699
+  - c96701dc-7113-4826-b3a5-7dc622e865bb
+  - 8edbab5c-b72a-4d31-9561-ab64ffc8d129
+  - fc4b6213-27ee-4cc8-94b8-8420cf5f24d2
+  - 02784089-fe7d-4a30-b3af-797abab45779
+  - 0af0130b-c278-45a2-92da-0ed20801e08f
+  - 358b124c-5282-4a06-b0b9-fc868a62b544
+  - 91ff606c-ab7e-48c5-90bb-32c121ba5800
+  - f12af4c1-fd46-41c6-aad2-4aa2f9883025

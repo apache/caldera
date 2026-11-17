@@ -1,0 +1,16 @@
+- id: 9065d8ea-a87f-4b4e-9aa5-2401c553c8e5
+  name: "Running process discovery"
+  description: "[ART-derived: T1057 'Process Discovery - tasklist'] List running processes."
+  tactic: discovery
+  technique:
+    attack_id: T1057
+    name: "Process Discovery"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          tasklist
+    linux:
+      sh:
+        command: |
+          ps aux

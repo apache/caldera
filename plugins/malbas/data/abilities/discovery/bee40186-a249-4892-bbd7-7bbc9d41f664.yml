@@ -1,0 +1,16 @@
+- id: bee40186-a249-4892-bbd7-7bbc9d41f664
+  name: "Host system information"
+  description: "Collect hostname and OS/hardware details."
+  tactic: discovery
+  technique:
+    attack_id: T1082
+    name: "System Information Discovery"
+  platforms:
+    windows:
+      psh:
+        command: |
+          hostname; systeminfo
+    linux:
+      sh:
+        command: |
+          hostname; uname -a

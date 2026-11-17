@@ -1,0 +1,16 @@
+- id: 6dc8f9ea-c8c3-4bce-a367-dd1cfa714573
+  name: "Current user context"
+  description: "Identify the current user."
+  tactic: discovery
+  technique:
+    attack_id: T1033
+    name: "System Owner/User Discovery"
+  platforms:
+    windows:
+      psh:
+        command: |
+          whoami /all
+    linux:
+      sh:
+        command: |
+          whoami; id

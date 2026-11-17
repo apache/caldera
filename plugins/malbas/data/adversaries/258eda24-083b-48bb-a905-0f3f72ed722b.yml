@@ -1,0 +1,30 @@
+id: 258eda24-083b-48bb-a905-0f3f72ed722b
+name: APT-OilRig-v1
+description: >-
+  OilRig (G0049, aka APT34 / Helix Kitten / Hazel Sandstorm / Earth Simnavaz),
+  an Iran (MOIS) espionage group active against government, energy, finance and
+  telecom targets across the Gulf. Lab-safe single-host subset that mirrors the
+  CTID OilRig emulation plan sequence. Multi-host steps (RDP, Plink tunnel,
+  PsExec to remote hosts, EWS exfiltration) and real malware (Mimikatz) are
+  left out or simulated - see docs/APT-OilRig-v1.md. For the full plan, import
+  it through Caldera's Emu plugin.
+atomic_ordering:
+  - e2508915-d3cb-4472-ae60-8bad15e36bf6
+  - a90ae560-f25e-4fe1-b37c-da2edb3dbfdd
+  - 7c417cb6-ce97-49ea-8987-09d34e8df8b2
+  - 3d1c2dac-4a32-4d14-a39d-d88784344f2d
+  - f15502fd-f88f-4614-9ce8-296b247ad3b7
+  - 0b90ac10-bbe5-457c-bbda-03a8da8ac1b7
+  - a90cf828-9cd1-428b-b8d6-664d6454f7e1
+  - 90a82b70-5143-493f-8c0f-5b3666737071
+  - ad0261f0-1117-4ac6-a3d6-957e9ffa34ec
+  - 96e5a0cb-3afb-4a7c-9074-901614d300ab
+  - 079edd36-a402-44c4-9159-418acb302761
+  - 14164331-efeb-4108-9db8-557a0e417ee6
+  - d6c58651-3d12-47d6-930f-bc2ea871714c
+  - 0cdaebfd-836b-4e9b-b258-a36ef99e871b
+  - 9502294d-d579-4a05-a7e4-237d6e3c8b1c
+  - 51955f0a-24f8-424f-8731-ccecad4445a0
+  - a3436981-a8a2-4e56-9b3b-0613e8ec5f46
+  - 96a22e89-55d5-45f6-8463-c022b24499fd
+  - 5647d0ec-9079-41bf-bea4-13dcbe422bc2

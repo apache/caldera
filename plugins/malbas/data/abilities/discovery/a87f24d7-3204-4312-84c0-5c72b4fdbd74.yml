@@ -1,0 +1,16 @@
+- id: a87f24d7-3204-4312-84c0-5c72b4fdbd74
+  name: "Active network connections"
+  description: "List active TCP/UDP connections."
+  tactic: discovery
+  technique:
+    attack_id: T1049
+    name: "System Network Connections Discovery"
+  platforms:
+    windows:
+      psh:
+        command: |
+          netstat -ano
+    linux:
+      sh:
+        command: |
+          ss -tunap 2>/dev/null || netstat -tunap

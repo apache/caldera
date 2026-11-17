@@ -1,0 +1,14 @@
+- id: 9d00b22e-f9f9-4b35-bf2b-dba1fbd6e918
+  name: "Local email collection (SIMULATED)"
+  description: "SIMULATED only. Writes a marker representing mailbox harvesting. No mail store is read. Self-cleans."
+  tactic: collection
+  technique:
+    attack_id: T1114.001
+    name: "Email Collection: Local Email Collection"
+  platforms:
+    windows:
+      psh:
+        command: |
+          Set-Content "$env:TEMP\a35_mail_marker.txt" 'SIMULATED mailbox collection - no mail read'
+        cleanup: |
+          Remove-Item "$env:TEMP\a35_mail_marker.txt" -Force

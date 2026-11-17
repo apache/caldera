@@ -1,0 +1,14 @@
+- id: 7ec4cf16-fa2c-4658-8dd0-850c033e71af
+  name: "DLL side-loading (SIMULATED)"
+  description: "SIMULATED only. Writes a benign placeholder named like a sideloaded DLL. No real DLL is planted or loaded. Self-cleans."
+  tactic: defense-evasion
+  technique:
+    attack_id: T1574.002
+    name: "Hijack Execution Flow: DLL Side-Loading"
+  platforms:
+    windows:
+      psh:
+        command: |
+          Set-Content "$env:TEMP\mp_sideload_placeholder.txt" 'SIMULATED DLL side-load placeholder - not a real DLL'; Get-Item "$env:TEMP\mp_sideload_placeholder.txt"
+        cleanup: |
+          Remove-Item "$env:TEMP\mp_sideload_placeholder.txt" -Force

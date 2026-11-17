@@ -1,0 +1,13 @@
+id: e24e5d96-bf9f-4960-9c05-f2daf30a209f
+name: Tactic-Defense-Evasion
+description: 'Tactic test library: Defense Evasion (defense-evasion). Standalone profile that exercises
+  the Defense Evasion techniques in the library, one ability per technique, independent of any adversary
+  chain. For MSSP coverage checks and internal control validation. 7 techniques, 3 simulated (see docs/simulated-techniques.md).'
+atomic_ordering:
+- 02784089-fe7d-4a30-b3af-797abab45779
+- 39d0cc78-07a5-4aa1-9ae3-399ff9a7a8d6
+- 6109cced-b073-48b3-a9b7-3e228d0dd4ac
+- 0046a42f-0aee-4f0f-9553-e515cc355b0d
+- fc4b6213-27ee-4cc8-94b8-8420cf5f24d2
+- 7ec4cf16-fa2c-4658-8dd0-850c033e71af
+- 0af0130b-c278-45a2-92da-0ed20801e08f

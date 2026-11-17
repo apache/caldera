@@ -1,0 +1,12 @@
+- id: 3d1c2dac-4a32-4d14-a39d-d88784344f2d
+  name: "Domain account discovery"
+  description: "Enumerate domain user accounts. Fails harmlessly on a non-domain host (CTID step 6)."
+  tactic: discovery
+  technique:
+    attack_id: T1087.002
+    name: "Account Discovery: Domain Account"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          net user /domain

@@ -1,0 +1,10 @@
+id: 9ba0f281-e007-468f-93d3-588d7352e724
+name: Tactic-Execution
+description: 'Tactic test library: Execution (execution). A standalone profile that exercises every Execution
+  technique currently in the library, one ability per technique, independent of any adversary chain. Built
+  for MSSP coverage checks and internal control validation. 3 techniques, all real. Lab-safe; any persistence
+  self-cleans. See docs/tactic-libraries.md.'
+atomic_ordering:
+- 41eea961-18bb-4f89-9480-15554b6a440d
+- 4be944d7-1c96-4585-9a77-4e86da8b1563
+- 96a22e89-55d5-45f6-8463-c022b24499fd

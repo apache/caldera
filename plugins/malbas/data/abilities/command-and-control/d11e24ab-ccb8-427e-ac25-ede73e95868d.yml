@@ -1,0 +1,19 @@
+- id: d11e24ab-ccb8-427e-ac25-ede73e95868d
+  name: External proxy configuration
+  description: Configures an external proxy via the WinINET registry (per-user) and WinHTTP (system-wide), pointing at a non-routable placeholder address. This performs the real technique (routing config) but sends no traffic, and both changes are reverted on cleanup. Leaves registry-set (Sysmon EID 13) and proxy-change telemetry.
+  tactic: command-and-control
+  technique:
+    attack_id: T1090
+    name: Proxy
+  platforms:
+    windows:
+      psh:
+        command: |
+          reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyServer /t REG_SZ /d "10.10.10.10:8080" /f
+          reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyEnable /t REG_DWORD /d 1 /f
+          netsh winhttp set proxy proxy-server="10.10.10.10:8080"
+          netsh winhttp show proxy
+        cleanup: |
+          netsh winhttp reset proxy
+          reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyEnable /t REG_DWORD /d 0 /f
+          reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyServer /f

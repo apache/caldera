@@ -1,0 +1,17 @@
+- id: 43714f10-0976-4270-aad4-b173e9c7bdb4
+  name: "Local account enumeration"
+  description: "[ART-derived: T1087.001 'Enumerate all accounts (Local)'] List local users and groups."
+  tactic: discovery
+  technique:
+    attack_id: T1087.001
+    name: "Account Discovery: Local Account"
+  platforms:
+    windows:
+      cmd:
+        command: |
+          net user & net localgroup
+    linux:
+      sh:
+        command: |
+          groups; id
+          

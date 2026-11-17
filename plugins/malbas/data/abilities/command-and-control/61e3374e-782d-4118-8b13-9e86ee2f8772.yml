@@ -1,0 +1,13 @@
+- id: 61e3374e-782d-4118-8b13-9e86ee2f8772
+  name: Web protocol C2 beacon (benign)
+  description: Makes a benign HTTP request from PowerShell to the operator C2, producing the process-to-network pattern (powershell.exe making an outbound connection) that a SOC should detect. No data is exfiltrated and no payload is retrieved.
+  tactic: command-and-control
+  technique:
+    attack_id: T1071.001
+    name: 'Application Layer Protocol: Web Protocols'
+  platforms:
+    windows:
+      psh:
+        command: |
+          try { Invoke-WebRequest -Uri "#{server}" -UseBasicParsing -TimeoutSec 10 | Out-Null } catch {}
+          Write-Output "Benign web beacon to C2 completed"

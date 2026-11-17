@@ -1,0 +1,12 @@
+- id: 4f736f30-d6d7-4602-b486-a01daf6e1f12
+  name: WinRM remote command
+  description: Runs a benign command (hostname, whoami) on an authorized lab host (#{target.host}) over Windows Remote Management. Real remote execution; the command is harmless and read-only. No cleanup required.
+  tactic: lateral-movement
+  technique:
+    attack_id: T1021.006
+    name: 'Remote Services: Windows Remote Management'
+  platforms:
+    windows:
+      psh:
+        command: |
+          Invoke-Command -ComputerName #{target.host} -ScriptBlock { hostname; whoami } -ErrorAction Stop

@@ -1,0 +1,13 @@
+id: 2daec3dc-9634-42e5-93cb-625d91a576e7
+name: Tactic-Persistence
+description: 'Tactic test library: Persistence (persistence). A standalone profile that exercises every
+  Persistence technique currently in the library, one ability per technique, independent of any adversary
+  chain. Built for MSSP coverage checks and internal control validation. 6 techniques, all real. Lab-safe;
+  any persistence self-cleans. See docs/tactic-libraries.md.'
+atomic_ordering:
+- 57525b1f-be66-40eb-9f46-2985bd2d74a8
+- 598e6bdd-5082-4dfd-8a35-d7a4c09384cf
+- 567752fe-2279-49cb-b249-2358a8163d1d
+- d536db68-70d6-4738-8bbf-e67fc536d433
+- 45e0bf17-3448-4a27-9753-b2a03ef3e30d
+- 9718b095-ebc9-48b0-9ca0-c3e0d7eb6698

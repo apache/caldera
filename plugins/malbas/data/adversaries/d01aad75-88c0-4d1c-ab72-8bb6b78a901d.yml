@@ -1,0 +1,19 @@
+id: d01aad75-88c0-4d1c-ab72-8bb6b78a901d
+name: APT-MuddyWater-v1
+description: >-
+  MuddyWater (G0069, aka Seedworm / Static Kitten / Mango Sandstorm / TA450),
+  an Iran (MOIS) espionage group active against government, telecom and energy
+  targets across the Middle East. Lab-safe, discovery-weighted emulation.
+  Initial access (phishing) is out of scope: the agent is the foothold.
+  All persistence steps are benign and self-clean.
+atomic_ordering:
+  - 4f3db7e1-7f98-405c-a479-c3f96c992f71
+  - d2abfda8-de0f-4f1a-9801-52f61cc42888
+  - 8a548f58-7b28-455d-ac3c-e47a291a0854
+  - 7404c784-7671-451c-b3e1-dd659ec715ef
+  - e31c0d93-7920-4c1b-b3df-cd0447e4e17d
+  - cbb069aa-f343-459c-9721-4e9b011b60e6
+  - b5ff5fb4-d9ab-469b-b54a-156bf51a6f3b
+  - 57525b1f-be66-40eb-9f46-2985bd2d74a8
+  - 598e6bdd-5082-4dfd-8a35-d7a4c09384cf
+  - b251c639-2af6-4c2a-a79b-a8d09a17f529

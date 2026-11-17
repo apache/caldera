@@ -1,0 +1,16 @@
+- id: 39d0cc78-07a5-4aa1-9ae3-399ff9a7a8d6
+  name: "Decode benign payload string"
+  description: "Base64-decode a benign string, representing the decode step Mustang Panda loaders use."
+  tactic: defense-evasion
+  technique:
+    attack_id: T1140
+    name: "Deobfuscate/Decode Files or Information"
+  platforms:
+    windows:
+      psh:
+        command: |
+          [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('TXVzdGFuZ1BhbmRhIGVtdWxhdGlvbg=='))
+    linux:
+      sh:
+        command: |
+          echo 'TXVzdGFuZ1BhbmRhIGVtdWxhdGlvbg==' | base64 -d; echo

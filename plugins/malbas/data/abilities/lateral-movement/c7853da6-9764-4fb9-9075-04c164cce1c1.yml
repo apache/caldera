@@ -1,0 +1,15 @@
+- id: c7853da6-9764-4fb9-9075-04c164cce1c1
+  name: Pass-the-hash (SIMULATED)
+  description: SIMULATED. Writes a harmless marker noting a pass-the-hash attempt against #{target.host}; no credential material is captured or used. Kept simulated because a live version needs a weaponized credential-reuse payload. Requires manager approval (see docs/simulated-techniques.md) before any live build.
+  tactic: lateral-movement
+  technique:
+    attack_id: T1550.002
+    name: 'Use Alternate Authentication Material: Pass the Hash'
+  platforms:
+    windows:
+      psh:
+        command: |
+          "SIMULATED pass-the-hash to #{target.host}. No credential material used. Requires manager approval to run live." | Out-File "$env:TEMP\mal-bas-SIMULATED-T1550.002.txt" -Encoding ascii
+          Get-Content "$env:TEMP\mal-bas-SIMULATED-T1550.002.txt"
+        cleanup: |
+          Remove-Item "$env:TEMP\mal-bas-SIMULATED-T1550.002.txt" -Force -ErrorAction SilentlyContinue
