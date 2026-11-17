@@ -61,6 +61,10 @@ jobs:
         # empty and the scan can only fail; skip it there. The merged result is still
         # scanned by the push-event run on master.
         if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false && github.actor != 'dependabot[bot]') }}
+        # SonarCloud currently rejects the configured token (HTTP 403). Until the
+        # project is set up in the ASF SonarCloud organization, report a failed
+        # scan as a warning instead of failing the tests that already passed.
+        continue-on-error: true
         uses: SonarSource/sonarqube-scan-action@59202af334b4ba7b5db01b701b8e79f8b3bef0f4  # v8.5.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
