@@ -91,6 +91,11 @@ Next, install the PIP requirements:
 pip3 install -r requirements.txt
 ```
 
+LDAP login is optional. To use it, also install the LDAP requirements, which are kept in a separate file because the `ldap3` package is licensed under the LGPL 3.0:
+```Bash
+pip3 install -r requirements-ldap.txt
+```
+
 Finally, start the server.
 ```Bash
 python3 server.py --insecure --build

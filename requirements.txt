@@ -14,8 +14,6 @@ myst-parser==2.0.0
 marshmallow==3.26.2
 dirhash==0.2.1
 marshmallow-enum==1.5.1
-ldap3==2.9.1
-pyasn1==0.6.5
 reportlab==4.0.4  # debrief
 rich==13.7.0
 lxml==6.1.0  # debrief
