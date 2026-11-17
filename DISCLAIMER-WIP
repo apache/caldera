@@ -1,0 +1,53 @@
+Apache Caldera (incubating) is an effort undergoing incubation at The Apache
+Software Foundation (ASF), sponsored by the Apache Incubator. Incubation is
+required of all newly accepted projects until a further review indicates that
+the infrastructure, communications, and decision-making process have
+stabilized in a manner consistent with other successful ASF projects. While
+incubation status is not necessarily a reflection of the completeness or
+stability of the code, it does indicate that the project has yet to be fully
+endorsed by the ASF.
+
+Some of the incubating project's releases may not be fully compliant with ASF
+policy. For example, releases may have incomplete or un-reviewed licensing
+conditions. What follows is a list of issues the project is currently aware
+of (this list is likely to be incomplete):
+
+ - Source files do not yet carry the ASF source header, and the build has no
+   Apache RAT configuration to check headers and licenses.
+
+ - The source release bundles the Font Awesome Free 5.15.3 web fonts
+   (static/css/webfonts/), which are under the SIL Open Font License 1.1.
+   ASF policy treats this license as Category B, which is meant for
+   convenience binaries rather than source releases.
+
+ - The source release bundles third-party JavaScript and CSS in minified form
+   without the matching unminified source: static/js/lib/alpine.min.js,
+   bulma-toast.min.js, confetti.browser.min.js and muuri.min.js;
+   static/jquery/jquery.min.js; static/css/lib/bulma-tooltip.min.css and
+   fa-all.min.css. alpine.min.js and confetti.browser.min.js carry no
+   copyright or license notice, and the others carry only a short banner;
+   LICENSE and the licenses/ directory supply the full notices.
+   static/css/lib/custom-bulma.css and its .map file are generated from the
+   Sass sources under static/scss/.
+
+ - Some bundled third-party files have been modified locally
+   (static/jquery/jquery.multi-select.js, static/css/multi-select.css,
+   static/css/lib/bulma-tooltip.min.css), and static/jquery/jquery.min.js
+   has been reformatted. LICENSE identifies them.
+
+ - The origin and license of the images under static/img/ have not been
+   reviewed. Some of them are operating system logos that are trademarks of
+   their owners.
+
+ - requirements.txt lists svglib, which is under the LGPL 3.0 (ASF Category
+   X). The debrief plugin uses it to render reports.
+
+ - Plugins, including the web interface (magma), are git submodules hosted
+   outside the ASF. They are not part of this source release and have not
+   been reviewed for it. conf/default.yml enables several of them.
+
+If you are planning to incorporate this work into your product/project,
+please be aware that you will need to conduct a thorough licensing review to
+determine the overall implications of including this work. For the current
+status of this project through the Apache Incubator, visit:
+https://incubator.apache.org/projects/caldera.html
