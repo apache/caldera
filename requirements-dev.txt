@@ -3,5 +3,4 @@ pytest
 pytest-aiohttp==1.0.3
 coverage
 pre-commit
-safety
 bandit
