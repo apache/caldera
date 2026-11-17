@@ -43,9 +43,14 @@ RUN apt-get update && \
 apt-get --no-install-recommends -y install git curl unzip python3-dev python3-pip mingw-w64 zlib1g gcc && \
 rm -rf /var/lib/apt/lists/*
 
-# Install Golang from source (apt version is too out-of-date)
-RUN curl -k -L https://go.dev/dl/go1.25.0.linux-amd64.tar.gz -o go1.25.0.linux-amd64.tar.gz && \
-tar -C /usr/local -xzf go1.25.0.linux-amd64.tar.gz && rm go1.25.0.linux-amd64.tar.gz
+# Install Go from the official release archive (the apt version is too out-of-date).
+# The archive is checked against the SHA-256 listed for it on https://go.dev/dl/
+# before it is unpacked; update both values together.
+ARG GO_VERSION=1.25.0
+ARG GO_SHA256=2852af0cb20a13139b3448992e69b868e50ed0f8a1e5940ee1de9e19a123b613
+RUN curl -fsSL "https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz" -o /tmp/go.tar.gz && \
+echo "${GO_SHA256}  /tmp/go.tar.gz" | sha256sum -c - && \
+tar -C /usr/local -xzf /tmp/go.tar.gz && rm /tmp/go.tar.gz
 ENV PATH="$PATH:/usr/local/go/bin"
 RUN go version
 
