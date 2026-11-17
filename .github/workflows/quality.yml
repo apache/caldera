@@ -118,3 +118,22 @@ jobs:
           path: sonar-fork-pr-artifact/
           retention-days: 3
           if-no-files-found: warn
+
+  # Branch protection on master requires a check named "Code Quality" (see
+  # .asf.yaml), but the matrix jobs above report as "build (<python>, <toxenv>)".
+  # This job reports their combined result under the required name. It runs even
+  # when a build job fails or is cancelled, so the check fails instead of being
+  # skipped (a skipped required check counts as passing).
+  code-quality:
+    name: Code Quality
+    needs: build
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Check that every build job passed
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+        run: |
+          echo "build jobs: $BUILD_RESULT"
+          test "$BUILD_RESULT" = "success"
