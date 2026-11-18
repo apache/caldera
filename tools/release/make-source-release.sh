@@ -51,8 +51,9 @@ commit=$(git rev-parse --verify --quiet "$ref^{commit}") || {
     exit 1
 }
 
-# The packaged tree must declare the version being released.
-if ! git show "$commit:app/version.py" | grep -qx "__version__ = '$version'"; then
+# The packaged tree must declare the version being released. The declaration
+# is matched as a fixed string, so the dots in the version are literal.
+if ! git show "$commit:app/version.py" | grep -qxF -- "__version__ = '$version'"; then
     echo "error: app/version.py at $ref does not set __version__ = '$version'" >&2
     exit 1
 fi
