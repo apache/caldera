@@ -10,7 +10,7 @@ from app.api.v2.security import pass_option_middleware
 from app.utility.base_world import BaseWorld
 
 MIB = 1024 * 1024
-LIMIT_5_3_0 = 5120 ** 2  # the request size limit 5.3.0 applied to every route
+DEFAULT_REQUEST_LIMIT = 25 * MIB  # the limit every release before 5.4.0 hardcoded
 
 
 def _make_app(upload_max_size_mb):
@@ -46,12 +46,12 @@ def test_make_app_records_upload_limit():
     assert _make_app(100)[v2_module.CLIENT_MAX_SIZE] == 100 * MIB
 
 
-def test_default_limits_match_5_3_0():
-    """Agent output and uploads up to the 5.3.0 limit must still be accepted by default."""
+def test_default_limits_are_25_mib():
+    """Agent output and uploads up to 25 MiB must still be accepted by default."""
     conf = yaml.safe_load((Path(__file__).parents[2] / 'conf' / 'default.yml').read_text())
-    assert conf['client_max_size_mb'] * MIB == LIMIT_5_3_0
-    assert conf['api_upload_max_size_mb'] * MIB == LIMIT_5_3_0
-    assert v2_module.DEFAULT_UPLOAD_MAX_SIZE_MB * MIB == LIMIT_5_3_0
+    assert conf['client_max_size_mb'] * MIB == DEFAULT_REQUEST_LIMIT
+    assert conf['api_upload_max_size_mb'] * MIB == DEFAULT_REQUEST_LIMIT
+    assert v2_module.DEFAULT_UPLOAD_MAX_SIZE_MB * MIB == DEFAULT_REQUEST_LIMIT
 
 
 def test_root_and_subapp_limits():
