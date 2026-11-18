@@ -372,7 +372,7 @@ class RestService(RestServiceInterface, BaseService):
             f.write(yaml.dump(content))
 
     async def _get_file_path(self, planner_id):
-        _, file_path = await self.get_service('file_svc').find_file_path('%s.yml' % planner_id, location='data')
+        _, file_path = await self.get_service('file_svc').find_file_path('%s.yml' % planner_id, location='planners')
         if not file_path:
             file_path = 'data/planners/%s.yml' % planner_id
         return file_path
@@ -454,7 +454,7 @@ class RestService(RestServiceInterface, BaseService):
     async def _delete_data_from_memory_and_disk(self, ram_key, identifier, data):
         await self.get_service('data_svc').remove(ram_key, data)
         _, file_path = await self.get_service('file_svc').find_file_path('%s.yml' % data.get(identifier),
-                                                                         location='data')
+                                                                         location=ram_key)
         if not file_path:
             file_path = 'data/%s/%s.yml' % (ram_key, data.get(identifier))
         if os.path.exists(file_path):
@@ -474,7 +474,7 @@ class RestService(RestServiceInterface, BaseService):
             adv['id'] = str(uuid.uuid4())
         obj_default = (await self._services.get('data_svc').locate('objectives', match=dict(name='default')))[0]
         adv['atomic_ordering'] = [list(ab_dict.values())[0] for ab_dict in adv['atomic_ordering']]
-        _, file_path = await self.get_service('file_svc').find_file_path('%s.yml' % adv['id'], location='data')
+        _, file_path = await self.get_service('file_svc').find_file_path('%s.yml' % adv['id'], location='adversaries')
         if file_path:
             # exists
             current_adv = dict(self.strip_yml(file_path)[0])
@@ -546,7 +546,7 @@ class RestService(RestServiceInterface, BaseService):
             return []
 
         # Update or create ability
-        _, file_path = await self.get_service('file_svc').find_file_path('{}.yml'.format(ab['id']), location='data')
+        _, file_path = await self.get_service('file_svc').find_file_path('{}.yml'.format(ab['id']), location='abilities')
         if file_path:
             # Ability exists, update
             current_ability = dict(self.strip_yml(file_path)[0][0])
@@ -586,7 +586,7 @@ class RestService(RestServiceInterface, BaseService):
     async def _persist_item(self, access, object_class_name, object_class, item):
         if not item.get('id') or not item['id']:
             item['id'] = str(uuid.uuid4())
-        _, file_path = await self.get_service('file_svc').find_file_path('%s.yml' % item['id'], location='data')
+        _, file_path = await self.get_service('file_svc').find_file_path('%s.yml' % item['id'], location=object_class_name)
         if file_path:
             current_item = dict(self.strip_yml(file_path)[0])
             allowed = (await self.get_service('data_svc').locate(object_class_name, dict(id=item['id'])))[0].access
