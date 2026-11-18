@@ -6,8 +6,11 @@
 #   apache-caldera-<version>-incubating-src.tar.gz.sha512  (checksum)
 #
 # The archive is made with `git archive`, so it holds exactly the tracked
-# files of the core repository at that ref. Plugin submodules are not part
-# of the source release and are not included.
+# files of the core repository at that ref, plus one generated file,
+# plugin-revisions.txt. Plugin submodules are not part of the source release
+# and are not included: their directories are empty in the archive, and
+# plugin-revisions.txt lists the path, pinned commit and URL of each one so
+# that the matching plugins can be fetched (see README.md).
 #
 # Usage:
 #   tools/release/make-source-release.sh [--no-sign] <version> <git-ref>
@@ -19,6 +22,8 @@
 # Environment:
 #   OUT_DIR   output directory (default: dist/<version> under the repository root)
 #   GPG_KEY   key id or fingerprint to sign with (default: gpg's default key)
+#
+# Needs git 2.28 or later (git archive --add-file).
 #
 # See RELEASING.md for how the files are staged and voted on.
 
@@ -76,7 +81,53 @@ mkdir -p "$out_dir"
 out_dir=$(cd "$out_dir" && pwd)
 rm -f "$out_dir/$tarball" "$out_dir/$tarball.asc" "$out_dir/$tarball.sha512"
 
-git archive --format=tar.gz --prefix="${name}/" --output="$out_dir/$tarball" "$commit"
+# Plugins are separate repositories that the core repository pins as
+# submodules. List each submodule of the release commit, with the commit it is
+# pinned to and its URL from .gitmodules, in a generated file for the archive.
+manifest_name=plugin-revisions.txt
+if git cat-file -e "$commit:$manifest_name" 2>/dev/null; then
+    echo "error: $manifest_name exists at $ref, but this script generates that file" >&2
+    exit 1
+fi
+
+# Print the URL that .gitmodules at the release commit gives for a submodule path.
+submodule_url() {
+    local key value
+    while read -r key value; do
+        if [[ "$value" == "$1" ]]; then
+            key=${key#submodule.}
+            git config --blob "$commit:.gitmodules" --get "submodule.${key%.path}.url"
+            return
+        fi
+    done < <(git config --blob "$commit:.gitmodules" --get-regexp '^submodule\..*\.path$')
+    return 1
+}
+
+work_dir=$(mktemp -d)
+trap 'rm -rf "$work_dir"' EXIT
+manifest="$work_dir/$manifest_name"
+plugin_count=0
+{
+    echo "# Plugin repositories pinned by Apache Caldera (incubating) $version,"
+    echo "# commit $commit."
+    echo "# Plugins are not part of this source release. README.md describes how to"
+    echo "# fetch them at the commits listed here."
+    echo "#"
+    echo "# <path> <commit> <url>"
+    while read -r mode _ sha path; do
+        [[ "$mode" == 160000 ]] || continue
+        url=$(submodule_url "$path") || url=
+        if [[ -z "$url" || "$path$url" =~ [[:space:]] ]]; then
+            echo "error: .gitmodules at $ref has no usable URL for the submodule '$path'" >&2
+            exit 1
+        fi
+        echo "$path $sha $url"
+        plugin_count=$((plugin_count + 1))
+    done < <(git ls-tree -r "$commit")
+} > "$manifest"
+
+git archive --format=tar.gz --prefix="${name}/" --add-file="$manifest" \
+    --output="$out_dir/$tarball" "$commit"
 
 # A source release must not contain compiled code.
 compiled=$(tar -tzf "$out_dir/$tarball" | grep -E '\.(exe|dll|so|dylib|jar|class|pyc|pyd|o|a)$' || true)
@@ -103,5 +154,6 @@ else
 fi
 
 echo
-echo "Source release for $version built from $ref ($commit):"
+echo "Source release for $version built from $ref ($commit),"
+echo "with $plugin_count plugin revisions listed in $manifest_name:"
 ls -l "$out_dir/$tarball"*

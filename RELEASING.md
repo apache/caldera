@@ -59,8 +59,13 @@ The script writes these files to `dist/5.4.0/`:
 - `apache-caldera-5.4.0-incubating-src.tar.gz.asc`
 - `apache-caldera-5.4.0-incubating-src.tar.gz.sha512`
 
-The archive holds the tracked files of the core repository at the tag. Plugin
-submodules are not part of the source release. Set `GPG_KEY` to choose the
+The archive holds the tracked files of the core repository at the tag, plus
+one generated file, `plugin-revisions.txt`. Plugin submodules are not part of
+the source release, so their directories are empty in the archive.
+`plugin-revisions.txt` lists the path, pinned commit and repository URL of
+each one, read from `.gitmodules` and the submodule entries of the tag, so
+that the same plugins can be fetched for an unpacked archive. The
+installation steps in `README.md` show how. Set `GPG_KEY` to choose the
 signing key. `--no-sign` gives a dry run that cannot be released.
 
 ## 3. Stage the release candidate
@@ -100,7 +105,11 @@ sha512sum --check apache-caldera-5.4.0-incubating-src.tar.gz.sha512
 
 They also check that the file name includes "incubating", that LICENSE,
 NOTICE and the disclaimer are present and correct, that the archive matches
-the tag, and that the tests run.
+the tag, and that the tests run. The only file in the archive that is not in
+the tag is `plugin-revisions.txt`; its entries match the output of
+`git ls-tree 5.4.0-rc1 plugins/`. The server, and the tests that use plugin
+files, need the plugins. Fetch them into the unpacked archive as `README.md`
+describes, or clone the tag with `--recursive`, which gives the same commits.
 
 Close each vote with a `[RESULT][VOTE]` email that lists the votes. If the
 candidate fails, fix the problems, tag `5.4.0-rc2` and start again from step 2.
