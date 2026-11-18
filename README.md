@@ -59,7 +59,7 @@ These plugins are ready to use but are not included by default and are not maint
 These requirements are for the computer running the core framework:
 
 * Any Linux or MacOS
-  * Python 3.10+ (with Pip3)
+  * Python 3.11+ (with Pip3)
 * Recommended hardware to run on is 8GB+ RAM and 2+ CPUs
 * Recommended: [GoLang 1.24+](https://go.dev/doc/install) to dynamically compile GoLang-based agents.
 * NodeJS (v16+ recommended for v5 VueJS UI)
