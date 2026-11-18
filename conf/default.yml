@@ -56,7 +56,7 @@ requirements:
     attr: version
     module: sys
     type: python_module
-    version: 3.9.0
+    version: 3.11.0
 users:
   blue:
     blue: admin
