@@ -83,7 +83,7 @@ python3 server.py --insecure --build
 Full steps:
 Start by cloning this repository recursively, passing the desired version/release in x.x.x format. This will pull in all available plugins.
 ```Bash
-git clone https://github.com/apache/caldera.git --recursive --tag x.x.x
+git clone https://github.com/apache/caldera.git --recursive --branch x.x.x
 ```
 
 Next, install the PIP requirements:
