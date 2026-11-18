@@ -68,6 +68,9 @@ jobs:
         id: meta-slim
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302  # v6.2.0
         with:
+          # Take the ref and commit for the labels from the checked-out
+          # release tag, not from the ref the workflow was started on.
+          context: git
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |
             latest=false
@@ -89,6 +92,7 @@ jobs:
         id: meta-full
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302  # v6.2.0
         with:
+          context: git  # as for the slim variant
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |
             latest=false
