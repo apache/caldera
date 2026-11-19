@@ -90,10 +90,13 @@ git clone https://github.com/apache/caldera.git --recursive --branch x.x.x
 If you start from the source release archive (`apache-caldera-x.x.x-incubating-src.tar.gz`) instead of a clone, note that it holds the core framework only. The plugin directories in it are empty, and the server needs the plugins to start. The file `plugin-revisions.txt` in the archive lists the repository and the exact commit of each plugin for that release. To fetch them, run this in the top directory of the unpacked archive:
 ```Bash
 grep -v '^#' plugin-revisions.txt | while read -r path commit url; do
-    git clone "$url" "$path" && git -C "$path" checkout --detach "$commit" || break
+    if [ ! -d "$path/.git" ]; then
+        git clone "$url" "$path" || exit 1
+    fi
+    git -C "$path" checkout --detach "$commit" || exit 1
 done
 ```
-The recursive clone of the same version gives the same plugin commits.
+If a plugin cannot be fetched, the loop stops with an error. Run it again to continue: plugins that were already cloned are reused. The recursive clone of the same version gives the same plugin commits.
 
 Next, install the PIP requirements:
 ```Bash
