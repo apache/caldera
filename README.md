@@ -77,6 +77,7 @@ Concise installation steps:
 git clone https://github.com/apache/caldera.git --recursive
 cd caldera
 pip3 install -r requirements.txt
+pip3 install -r requirements-debrief.txt  # optional: PDF reports in the debrief plugin
 python3 server.py --insecure --build
 ```
 
