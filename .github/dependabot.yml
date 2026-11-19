@@ -79,3 +79,7 @@ updates:
       interval: "monthly"
     cooldown:
       default-days: 4
+    groups:
+      docker-images:
+        patterns:
+          - "*"
