@@ -1,9 +1,16 @@
+# cooldown: a new release is proposed as a version update only once it is
+# 4 days old (the Dependabot default is 3 days). Security updates are not
+# delayed. For GitHub Actions this gives a new SHA time to be added to the
+# approved list in apache/infrastructure-actions, which external actions in
+# ASF repositories must be pinned to.
 version: 2
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 4
     groups:
       github-actions:
         patterns:
@@ -17,6 +24,8 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 4
     groups:
       python-dependencies:
         patterns:
@@ -30,6 +39,8 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 4
     groups:
       npm-dependencies:
         patterns:
@@ -43,3 +54,5 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 4
