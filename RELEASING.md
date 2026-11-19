@@ -30,6 +30,7 @@ Policies this follows:
   svn checkout --depth files https://dist.apache.org/repos/dist/release/incubator/caldera caldera-release
   cd caldera-release
   (gpg --list-sigs <KEY_ID> && gpg --armor --export <KEY_ID>) >> KEYS
+  svn add --force KEYS   # needed when KEYS is new; no effect when it is already versioned
   svn commit -m "Add <your name>'s key to KEYS" KEYS
   ```
 
