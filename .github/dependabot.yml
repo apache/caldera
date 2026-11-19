@@ -27,9 +27,17 @@ updates:
     cooldown:
       default-days: 4
     groups:
-      python-dependencies:
+      python-minor-patch:
         patterns:
           - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      python-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
       python-security:
         applies-to: security-updates
         patterns:
@@ -42,9 +50,17 @@ updates:
     cooldown:
       default-days: 4
     groups:
-      npm-dependencies:
+      npm-minor-patch:
         patterns:
           - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      npm-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
       npm-security:
         applies-to: security-updates
         patterns:
