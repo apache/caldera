@@ -104,15 +104,29 @@ class AppService(AppServiceInterface, BaseService):
                     sop.id = str(uuid.uuid4())
                     sop.name += f" ({datetime.now(timezone.utc).replace(microsecond=0).isoformat()})"
                     sop.set_start_details()
+                    if sop.adversary:
+                        full_adv = await self.get_service('data_svc').locate('adversaries', match=dict(adversary_id=sop.adversary.adversary_id))
+                        if full_adv:
+                            sop.adversary = full_adv[0]
+                    if sop.planner:
+                        full_planner = await self.get_service('data_svc').locate('planners', match=dict(planner_id=sop.planner.planner_id))
+                        if full_planner:
+                            sop.planner = full_planner[0]
+                    if sop.source:
+                        full_source = await self.get_service('data_svc').locate('sources', match=dict(id=sop.source.id))
+                        if full_source:
+                            sop.source = full_source[0]
                     await sop.update_operation_agents(self.get_services())
                     await self._services.get('data_svc').store(sop)
-                    self.loop.create_task(sop.run(self.get_services()))
+                    # Force the task onto the actively running asyncio loop instead of waiting for the next scheduler loop to run it
+                    asyncio.get_running_loop().create_task(sop.run(self.get_services()))
             await asyncio.sleep(interval)
 
     async def resume_operations(self):
         await asyncio.sleep(10)
         for op in await self.get_service('data_svc').locate('operations', match=dict(finish=None)):
-            self.loop.create_task(op.run(self.get_services()))
+            # Force the task onto the actively running asyncio loop
+            asyncio.get_running_loop().create_task(op.run(self.get_services()))
 
     async def load_plugins(self, plugins):
         def trim(p):
