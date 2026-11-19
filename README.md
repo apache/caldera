@@ -109,6 +109,8 @@ The debrief plugin, which `conf/default.yml` enables, needs the `svglib` package
 pip3 install -r requirements-debrief.txt
 ```
 
+These two commands apply to an installation on the host. The Docker images do not include either set of packages. See [Docker Installation](#docker-installation) for how to add them to an image.
+
 Finally, start the server.
 ```Bash
 python3 server.py --insecure --build
@@ -148,6 +150,21 @@ docker stop <container ID>
 ```
 
 There are two variants available, *full* and *slim*. The *slim* variant doesn't include files necessary for the `emu` and `atomic` plugins, which will be downloaded on-demand if the plugins are ever enabled. The *full* variant is suitable for operation in environments without an internet connection. Slim images on GHCR are prefixed with "slim".
+
+The Docker images of version 5.4.0 and later install `requirements.txt` but not the optional `requirements-ldap.txt` and `requirements-debrief.txt`, which LDAP login and the PDF reports of the debrief plugin need. Installing those packages on the host does not add them to a container. To use these features with Docker, build your own image on top of a Caldera image and install the files you need. Both files are in the image's working directory, `/usr/src/app`. Save the following as `Dockerfile.extended`, keeping only the lines you need:
+```Dockerfile
+FROM ghcr.io/apache/caldera:latest
+# LDAP login
+RUN pip3 install --break-system-packages --no-cache-dir -r requirements-ldap.txt
+# PDF reports of the debrief plugin
+RUN pip3 install --break-system-packages --no-cache-dir -r requirements-debrief.txt
+```
+Then build and run it:
+```sh
+docker build -t caldera-extended -f Dockerfile.extended .
+docker run -it -p 8888:8888 caldera-extended
+```
+To extend an image that you built locally, use its name in the `FROM` line, for example `FROM caldera`.
 
 **Docker Container Notes**
 - The Caldera container will automatically generate keys/usernames/password on first start.
