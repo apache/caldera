@@ -26,6 +26,13 @@ updates:
       interval: "monthly"
     cooldown:
       default-days: 4
+    ignore:
+      # The tests still use the event_loop fixture, which pytest-asyncio 1.0
+      # removed, so requirements-dev.txt and tox.ini pin 0.26.0 (see the notes
+      # there; tox.ini sets a review date of 2027-03-31). Remove this entry
+      # when the tests move to pytest-asyncio 1.x.
+      - dependency-name: "pytest-asyncio"
+        versions: [">=1.0"]
     groups:
       python-minor-patch:
         patterns:
