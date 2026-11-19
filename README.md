@@ -50,6 +50,7 @@ These plugins are supported and maintained by the Caldera team.
 ### More
 These plugins are ready to use but are not included by default and are not maintained by the Caldera team.
 - **[Arsenal](https://github.com/mitre-atlas/arsenal)** (MITRE ATLAS techniques and profiles)
+- **[BASTION](https://github.com/seosamuel02/caldera-bastion)** (Wazuh SIEM detection validation)
 - **[BountyHunter](https://github.com/fkie-cad/bountyhunter)** (The Bounty Hunter)
 - **[CalTack](https://github.com/mitre/caltack.git)** (embedded ATT&CK website)
 - **[SAML](https://github.com/mitre/saml)** (SAML authentication)
