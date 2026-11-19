@@ -1,15 +1,37 @@
 from aiohttp import web
 
+DEFAULT_UPLOAD_MAX_SIZE_MB = 25
 
-def make_app(services, upload_max_size_mb=100):
+# Request body limit, in bytes, for the routes of a sub-application.
+CLIENT_MAX_SIZE = web.AppKey('client_max_size', int)
+
+
+@web.middleware
+async def request_size_middleware(request, handler):
+    """Apply the request body limit of the sub-application that serves the route.
+
+    aiohttp creates every request with the root application's client_max_size, so a
+    limit given to a sub-application has no effect on its own. Install this on the
+    root application ahead of any middleware that reads the request body.
+    """
+    for app in reversed(request.match_info.apps):
+        limit = app.get(CLIENT_MAX_SIZE)
+        if limit:
+            if limit != request.client_max_size:
+                request = request.clone(client_max_size=limit)
+            break
+    return await handler(request)
+
+
+def make_app(services, upload_max_size_mb=DEFAULT_UPLOAD_MAX_SIZE_MB):
     from .responses import json_request_validation_middleware
     from .security import authentication_required_middleware_factory, pass_option_middleware
 
     try:
         max_size = int(upload_max_size_mb)
-        max_size = max_size if max_size > 0 else 100
+        max_size = max_size if max_size > 0 else DEFAULT_UPLOAD_MAX_SIZE_MB
     except (TypeError, ValueError):
-        max_size = 100
+        max_size = DEFAULT_UPLOAD_MAX_SIZE_MB
 
     app = web.Application(
         client_max_size=max_size * 1024 * 1024,
@@ -19,6 +41,7 @@ def make_app(services, upload_max_size_mb=100):
             json_request_validation_middleware
         ]
     )
+    app[CLIENT_MAX_SIZE] = max_size * 1024 * 1024
 
     from .handlers.health_api import HealthApi
     HealthApi(services).add_routes(app)
