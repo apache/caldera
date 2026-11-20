@@ -1,0 +1,85 @@
+# cooldown: a new release is proposed as a version update only once it is
+# 4 days old (the Dependabot default is 3 days). Security updates are not
+# delayed. For GitHub Actions this gives a new SHA time to be added to the
+# approved list in apache/infrastructure-actions, which external actions in
+# ASF repositories must be pinned to.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 4
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+      github-actions-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 4
+    ignore:
+      # The tests still use the event_loop fixture, which pytest-asyncio 1.0
+      # removed, so requirements-dev.txt and tox.ini pin 0.26.0 (see the notes
+      # there; tox.ini sets a review date of 2027-03-31). Remove this entry
+      # when the tests move to pytest-asyncio 1.x.
+      - dependency-name: "pytest-asyncio"
+        versions: [">=1.0"]
+    groups:
+      python-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      python-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+      python-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 4
+    groups:
+      npm-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      npm-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+      npm-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 4
+    groups:
+      docker-images:
+        patterns:
+          - "*"
