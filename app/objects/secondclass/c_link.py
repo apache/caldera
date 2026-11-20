@@ -134,8 +134,14 @@ class Link(BaseObject):
     @property
     def display(self):
         dump = LinkSchema(exclude=['jitter']).dump(self)
-        dump['command'] = self.decode_bytes(dump['command'])
-        dump['plaintext_command'] = self.decode_bytes(dump['plaintext_command'])
+        try:
+            dump['command'] = self.decode_bytes(dump['command'])
+        except Exception:
+            pass  # Keep the raw base64-encoded command
+        try:
+            dump['plaintext_command'] = self.decode_bytes(dump['plaintext_command'])
+        except Exception:
+            pass  # Keep the raw base64-encoded plaintext command
         return dump
 
     @status.setter

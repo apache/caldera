@@ -731,3 +731,28 @@ class TestOperation:
         assert seeded_rel.target.value == 's3cr3t', (
             'Relationship target fact value should be resolved from the source fact list, not None'
         )
+
+    def test_sanitize_for_json(self):
+        """Test that Operation._sanitize_for_json properly handles un-serializable inputs."""
+        # Contains a null byte, normal string, and a valid dictionary
+        test_cases = [
+            'normal string',
+            'string\x00with null',
+            {'dict_key': 'dict_val'},
+            '🔥 emoji', # Emojis are fine but shouldn't crash
+            {'nested': 'bad\x00string'} # Dictionary with nested bad string
+        ]
+        
+        for case in test_cases:
+            sanitized = Operation._sanitize_for_json(case)
+            # The output must be JSON serializable
+            serialized = json.dumps(sanitized)
+            assert serialized is not None
+            
+        # Test surrogate fallback specifically
+        bad_surrogate = 'hello\ud800world'
+        sanitized_surrogate = Operation._sanitize_for_json(bad_surrogate)
+        try:
+            json.dumps(sanitized_surrogate)
+        except UnicodeEncodeError:
+            pytest.fail("Sanitized surrogate failed serialization")
