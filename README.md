@@ -4,11 +4,11 @@
 [![codecov](https://codecov.io/gh/apache/caldera/branch/master/graph/badge.svg)](https://codecov.io/gh/apache/caldera)
 [![Documentation Status](https://readthedocs.org/projects/caldera/badge/?version=stable)](http://caldera.readthedocs.io/?badge=stable)
 
-# Caldera&trade;
+# Apache Caldera (Incubating)
 
-Caldera&trade; is a cyber security platform designed to easily automate adversary emulation, assist manual red-teams, and automate incident response.
+Apache Caldera (Incubating) is a cyber security platform designed to easily automate adversary emulation, assist manual red-teams, and automate incident response.
 
-It is built on the [MITRE ATT&CK™ framework](https://attack.mitre.org/) and is an active research project at MITRE.
+It is built on the [MITRE ATT&CK™ framework](https://attack.mitre.org/) and was originally developed at MITRE.
 
 The framework consists of two components:
 
@@ -201,7 +201,7 @@ The Caldera team highly reccommends standing up the Caldera server on a secure e
 
 ### Vulnerability Disclosures
 
-Refer to our [Vulnerability Disclosure Documentation](SECURITY.md) for submitting bugs.
+To report a security issue, see [SECURITY.md](SECURITY.md). Apache Caldera follows the [Apache Software Foundation security process](https://www.apache.org/security/). Please do not report security issues in public GitHub issues.
 
 #### Recent Vulnerability Disclosures
 
@@ -211,6 +211,8 @@ Refer to our [Vulnerability Disclosure Documentation](SECURITY.md) for submittin
 
 Refer to our [contributor documentation](CONTRIBUTING.md).
 
-## Caldera Benefactor Program
+## Disclaimer
 
-If you are interested in partnering to support, sustain, and evolve MITRE Caldera&trade;'s open source capabilities, please contact us at caldera@mitre.org.
+Apache Caldera (incubating) is an effort undergoing incubation at The Apache Software Foundation (ASF), sponsored by the Apache Incubator. Incubation is required of all newly accepted projects until a further review indicates that the infrastructure, communications, and decision-making process have stabilized in a manner consistent with other successful ASF projects. While incubation status is not necessarily a reflection of the completeness or stability of the code, it does indicate that the project has yet to be fully endorsed by the ASF.
+
+See the [DISCLAIMER-WIP](DISCLAIMER-WIP) file for the full disclaimer and the list of known issues.
