@@ -88,12 +88,13 @@ def run_tasks(services, run_vue_server=False):
     signal.signal(signal.SIGTERM, _handle_sigterm)
 
     loop = asyncio.new_event_loop()
-    # The event loop is set here, before any async work begins.  Services
-    # (AppService, DataService, etc.) are instantiated in __main__ prior to
-    # this call but they do not cache the loop at construction time — they
-    # resolve it lazily via asyncio.get_event_loop().  Setting it explicitly
-    # here ensures all subsequent loop.create_task() / loop.run_until_complete()
-    # calls operate on the same, controlled loop instance.
+    # This is the loop that runs the server; it is set as the current loop
+    # here, before any async work begins.  Services (AppService, DataService,
+    # etc.) are instantiated in __main__ before this call, so a loop that a
+    # service captures at construction time (asyncio.get_event_loop() in
+    # __init__) is a different loop that never runs, and tasks created on it
+    # never start.  Schedule background work on the running loop instead,
+    # e.g. asyncio.get_running_loop().create_task() inside a coroutine.
     asyncio.set_event_loop(loop)
     try:
         loop.create_task(app_svc.validate_requirements())

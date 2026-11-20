@@ -1,5 +1,14 @@
+import asyncio
+from unittest import mock
+
 import pytest
 
+from app.objects.c_adversary import Adversary
+from app.objects.c_operation import Operation
+from app.objects.c_planner import Planner
+from app.objects.c_schedule import Schedule
+from app.objects.c_source import Source
+from app.service.app_svc import AppService
 from app.utility.base_service import BaseService
 
 
@@ -129,3 +138,82 @@ class TestAppService:
                 assert operation.state == operation.States.CLEANUP.value
                 assert test_agent in operation.agents
                 assert not operation.untrusted_agents
+
+
+class _StopScheduler(Exception):
+    pass
+
+
+def _build_app_svc_before_loop(running_loop):
+    """Construct AppService the way server.py does: before run_tasks() creates the loop that runs it."""
+    construction_loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(construction_loop)
+    try:
+        svc = AppService(None)
+    finally:
+        asyncio.set_event_loop(running_loop)
+    return svc, construction_loop
+
+
+class TestOperationStartup:
+    def test_resume_operations_starts_on_running_loop(self, event_loop, data_svc):
+        svc, construction_loop = _build_app_svc_before_loop(event_loop)
+        operation = Operation(name='resume check', id='resume-check-op')
+        event_loop.run_until_complete(data_svc.store(operation))
+        started = []
+
+        async def fake_run(op, services):
+            started.append(op.id)
+
+        try:
+            with mock.patch.object(Operation, 'run', fake_run):
+                with mock.patch('app.service.app_svc.asyncio.sleep', new=mock.AsyncMock()):
+                    event_loop.run_until_complete(svc.resume_operations())
+                event_loop.run_until_complete(asyncio.sleep(0))
+        finally:
+            construction_loop.close()
+            event_loop.run_until_complete(data_svc.remove('operations', dict(id=operation.id)))
+        assert operation.id in started
+
+    def test_scheduled_operation_uses_stored_objects_and_running_loop(self, event_loop, data_svc):
+        svc, construction_loop = _build_app_svc_before_loop(event_loop)
+        adversary = Adversary(adversary_id='sched-adv', name='scheduled adversary', atomic_ordering=['sched-ability'])
+        planner = Planner(planner_id='sched-planner', name='scheduled planner', module='app.planners.atomic')
+        source = Source(id='sched-source', name='scheduled source', facts=[])
+        for obj in (adversary, planner, source):
+            event_loop.run_until_complete(data_svc.store(obj))
+        # Stand-ins that carry only the identifiers, so the assertions below show that
+        # run_scheduler() replaced them with the objects stored in data_svc.
+        task = Operation(name='scheduled op', adversary=Adversary(adversary_id='sched-adv', atomic_ordering=[]),
+                         planner=Planner(planner_id='sched-planner'), source=Source(id='sched-source'))
+        schedule = Schedule(schedule='* * * * *', task=task, id='sched-check')
+        event_loop.run_until_complete(data_svc.store(schedule))
+        started = []
+
+        async def fake_run(op, services):
+            started.append(op)
+
+        async def no_agents(op, services):
+            op.agents = []
+
+        try:
+            with mock.patch.object(Operation, 'run', fake_run), \
+                    mock.patch.object(Operation, 'update_operation_agents', no_agents):
+                with mock.patch('app.service.app_svc.asyncio.sleep', new=mock.AsyncMock(side_effect=_StopScheduler)):
+                    with pytest.raises(_StopScheduler):
+                        event_loop.run_until_complete(svc.run_scheduler())
+                event_loop.run_until_complete(asyncio.sleep(0))
+        finally:
+            construction_loop.close()
+            event_loop.run_until_complete(data_svc.remove('schedules', dict(id=schedule.id)))
+            for op in started:
+                event_loop.run_until_complete(data_svc.remove('operations', dict(id=op.id)))
+            event_loop.run_until_complete(data_svc.remove('adversaries', dict(adversary_id=adversary.adversary_id)))
+            event_loop.run_until_complete(data_svc.remove('planners', dict(planner_id=planner.planner_id)))
+            event_loop.run_until_complete(data_svc.remove('sources', dict(id=source.id)))
+        assert len(started) == 1
+        scheduled = started[0]
+        assert scheduled.name.startswith('scheduled op (')
+        assert scheduled.adversary.atomic_ordering == ['sched-ability']
+        assert scheduled.planner.module == 'app.planners.atomic'
+        assert scheduled.source.name == 'scheduled source'
