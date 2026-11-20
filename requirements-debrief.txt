@@ -1,0 +1,5 @@
+# Optional dependency for the debrief plugin, which needs it to build PDF
+# reports. It is not installed by requirements.txt because svglib is licensed
+# under the LGPL 3.0. Install it with:
+#   pip install -r requirements-debrief.txt
+svglib==1.5.1
