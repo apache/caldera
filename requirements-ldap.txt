@@ -1,0 +1,6 @@
+# Optional dependencies for LDAP login (the "ldap" section of the server
+# configuration). They are not installed by requirements.txt because ldap3 is
+# licensed under the LGPL 3.0. Install them with:
+#   pip install -r requirements-ldap.txt
+ldap3==2.9.1
+pyasn1==0.6.5

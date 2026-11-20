@@ -42,3 +42,6 @@ htmlcov/
 .coverage.*
 *,cover
 _*/
+
+# source release output (tools/release/make-source-release.sh)
+/dist/
