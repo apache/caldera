@@ -1,4 +1,7 @@
 import base64
+import os
+import uuid
+
 import pytest
 
 from unittest.mock import AsyncMock, MagicMock
@@ -218,6 +221,44 @@ class TestRestSvc:
             f.write(data)
         response = event_loop.run_until_complete(internal_rest_svc.delete_adversary(data=dict(adversary_id='123')))
         assert 'Delete action completed' == response
+        assert not os.path.exists('data/adversaries/123.yml')
+
+    def test_delete_adversary_keeps_other_object_with_same_id(self, event_loop, rest_svc, file_svc):
+        internal_rest_svc = rest_svc(event_loop)
+        object_id = str(uuid.uuid4())
+        adversary_file = 'data/adversaries/%s.yml' % object_id
+        source_file = 'data/sources/%s.yml' % object_id
+        try:
+            with open(source_file, 'w') as f:
+                f.write('id: %s\nname: source with the same id\nfacts: []\n' % object_id)
+            with open(adversary_file, 'w') as f:
+                f.write('id: %s\nname: test\ndescription: test\natomic_ordering: []\n' % object_id)
+            event_loop.run_until_complete(internal_rest_svc.delete_adversary(data=dict(adversary_id=object_id)))
+            assert not os.path.exists(adversary_file)
+            assert os.path.exists(source_file)
+        finally:
+            for path in (adversary_file, source_file):
+                if os.path.exists(path):
+                    os.remove(path)
+
+    def test_persist_source_does_not_overwrite_other_object_with_same_id(self, event_loop, rest_svc, file_svc):
+        internal_rest_svc = rest_svc(event_loop)
+        object_id = str(uuid.uuid4())
+        adversary_file = 'data/adversaries/%s.yml' % object_id
+        source_file = 'data/sources/%s.yml' % object_id
+        adversary_yaml = 'id: %s\nname: test\ndescription: test\natomic_ordering: []\n' % object_id
+        try:
+            with open(adversary_file, 'w') as f:
+                f.write(adversary_yaml)
+            event_loop.run_until_complete(internal_rest_svc.persist_source(
+                {'access': [BaseWorld.Access.RED]}, dict(id=object_id, name='source with the same id', facts=[])))
+            with open(adversary_file) as f:
+                assert f.read() == adversary_yaml
+            assert os.path.exists(source_file)
+        finally:
+            for path in (adversary_file, source_file):
+                if os.path.exists(path):
+                    os.remove(path)
 
     def test_delete_agent(self, event_loop, rest_svc, file_svc):
         internal_rest_svc = rest_svc(event_loop)
