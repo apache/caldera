@@ -34,16 +34,79 @@ class AbilitySchema(ma.Schema):
     delete_payload = ma.fields.Bool(load_default=None)
 
     @ma.pre_load
-    def fix_id(self, data, **_):
+    def normalize_ability_file_fields(self, data, **_):
+        """
+        Ensures that ability file fields are formatted correctly for processing
+        """
+        if not isinstance(data, dict):
+            return data
         if 'id' in data:
             data['ability_id'] = data.pop('id')
+        if isinstance(data.get('technique'), dict):
+            technique = data.pop('technique')
+            data.setdefault('technique_id', technique.get('attack_id'))
+            data.setdefault('technique_name', technique.get('name'))
+        if 'platforms' in data and 'executors' not in data:
+            data['executors'] = self._platforms_to_executor_list(data.pop('platforms'))
+        if self._has_legacy_requirements(data.get('requirements')):
+            data['requirements'] = self._legacy_requirements_to_list(data['requirements'])
         return data
 
     @ma.post_load
     def build_ability(self, data, **kwargs):
-        if 'technique' in data:
-            data['technique_name'] = data.pop('technique')
         return None if kwargs.get('partial') is True else Ability(**data)
+
+    @staticmethod
+    def _platforms_to_executor_list(platforms):
+        """
+        Translates legacy platform-structured YAML into caldera executor format
+        """
+        executors = []
+        if not isinstance(platforms, dict):
+            raise ma.ValidationError('Platforms must be a dictionary.', 'platforms')
+        for platform_names, platform_executors in platforms.items():
+            if not isinstance(platform_executors, dict):
+                raise ma.ValidationError('Platform executors must be a dictionary.', 'platforms')
+
+            platform_list = [name.strip() for name in str(platform_names).split(',')]
+
+            for executor_names, executor_data in platform_executors.items():
+                if not isinstance(executor_data, dict):
+                    raise ma.ValidationError('Executor data must be a dictionary.', 'platforms')
+                executor = dict(executor_data)  # make a dict of the data and fix up below
+                if isinstance(executor.get('cleanup'), str):
+                    # cleanup actions should be in a list
+                    executor['cleanup'] = [executor['cleanup']]
+                if isinstance(executor.get('parsers'), dict):
+                    executor['parsers'] = [
+                        {'module': module, 'parserconfigs': parserconfigs}
+                        for module, parserconfigs in executor['parsers'].items()
+                    ]
+
+                executor_list = [name.strip() for name in str(executor_names).split(',')]
+                executors.extend(
+                    {**executor, 'platform': platform_name, 'name': executor_name}
+                    for platform_name in platform_list
+                    for executor_name in executor_list
+                )
+        return executors
+
+    @staticmethod
+    def _has_legacy_requirements(requirements):
+        return (
+            isinstance(requirements, list)
+            and requirements
+            and isinstance(requirements[0], dict)
+            and 'relationship_match' not in requirements[0]
+        )
+
+    @staticmethod
+    def _legacy_requirements_to_list(requirements):
+        converted = []
+        for requirement in requirements:
+            for module, relationship_match in requirement.items():
+                converted.append({'module': module, 'relationship_match': relationship_match})
+        return converted
 
 
 class Ability(FirstClassObjectInterface, BaseObject):
