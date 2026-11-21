@@ -1,5 +1,9 @@
-import pytest
+import asyncio
 
+import pytest
+from aiohttp import web
+
+from app.service.app_svc import AppService
 from app.utility.base_service import BaseService
 
 
@@ -46,6 +50,24 @@ async def setup_finished_operation(setup_operations_api_test, test_agent, test_o
 
 
 class TestAppService:
+    def test_init_without_preset_event_loop(self):
+        """AppService must construct when no event loop is set on the thread.
+
+        Python 3.14 no longer creates an implicit loop in
+        asyncio.get_event_loop(), so constructing AppService before any other
+        service has set one raised RuntimeError (#3368).
+        """
+        try:
+            previous = asyncio.get_event_loop()
+        except RuntimeError:
+            previous = None
+        asyncio.set_event_loop(None)
+        try:
+            service = AppService(web.Application())
+            assert service.loop is not None
+        finally:
+            asyncio.set_event_loop(previous)
+
     async def test_mark_agent_as_untrusted_running_operation(self, setup_running_operation, test_agent, app_svc, mocker,
                                                              async_return, test_operation):
         with mocker.patch('app.objects.c_operation.Operation.all_facts') as mock_all_facts:
