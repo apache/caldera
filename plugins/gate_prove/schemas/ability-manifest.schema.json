@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://caldera.apache.org/gate-prove/ability-manifest.schema.json",
+  "title": "GateProve AbilityManifest",
+  "description": "Safety-relevant execution contract for an AI-generated CALDERA ability.",
+  "type": "object",
+  "required": [
+    "ability_id",
+    "name",
+    "description",
+    "tactic",
+    "technique_id",
+    "technique_name",
+    "platforms",
+    "parsers",
+    "cleanup",
+    "scope"
+  ],
+  "properties": {
+    "ability_id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "description": { "type": "string", "minLength": 1 },
+    "tactic": { "type": "string", "minLength": 1 },
+    "technique_id": { "type": "string", "pattern": "^T[0-9]{4}(\\.[0-9]{3})?$" },
+    "technique_name": { "type": "string", "minLength": 1 },
+    "platforms": { "type": "object", "minProperties": 1 },
+    "privilege": { "type": "string" },
+    "parsers": { "type": "array", "minItems": 1 },
+    "cleanup": { "type": "array", "minItems": 1 },
+    "scope": {
+      "type": "object",
+      "required": ["targets", "expires_at", "max_executions"],
+      "properties": {
+        "targets": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "expires_at": { "type": "string", "format": "date-time" },
+        "max_executions": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

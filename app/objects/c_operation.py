@@ -214,6 +214,18 @@ class Operation(FirstClassObjectInterface, BaseObject):
         return ability_id in [link.ability.ability_id for link in self.chain if link.finish]
 
     async def apply(self, link):
+        gate_prove_svc = BaseService.get_service('gate_prove_svc')
+        if gate_prove_svc:
+            decision = gate_prove_svc.govern_link(self, link)
+            if decision.disposition != 'allow':
+                self.add_link(link)
+                logging.warning(
+                    'GateProve prevented dispatch of ability %s in operation %s: %s',
+                    link.ability.ability_id,
+                    self.id,
+                    decision.reason,
+                )
+                return link.id
         while self.state != self.states['RUNNING']:
             if self.state == self.states['RUN_ONE_LINK']:
                 self.add_link(link)
@@ -438,7 +450,7 @@ class Operation(FirstClassObjectInterface, BaseObject):
         cleanup_count = 0
         for member in self.agents:
             for link in await services.get('planning_svc').get_cleanup_links(self, member):
-                self.add_link(link)
+                await self.apply(link)
                 cleanup_count += 1
         if cleanup_count:
             self.state = self.states['CLEANUP']
