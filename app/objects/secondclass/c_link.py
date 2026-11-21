@@ -49,6 +49,7 @@ class LinkSchema(ma.Schema):
     output = ma.fields.String()
     deadman = ma.fields.Boolean()
     agent_reported_time = ma.fields.DateTime(format=BaseObject.TIME_FORMAT, load_default=None)
+    file_encoding = ma.fields.String(load_default=None, allow_none=True)
 
     @ma.pre_load()
     def fix_ability(self, link, **_):
@@ -160,7 +161,8 @@ class Link(BaseObject):
         return variable in cls.RESERVED
 
     def __init__(self, command='', plaintext_command='', paw='', ability=None, executor=None, status=-3, score=0, jitter=0, cleanup=0, id='',
-                 pin=0, host=None, deadman=False, used=None, relationships=None, agent_reported_time=None):
+                 pin=0, host=None, deadman=False, used=None, relationships=None, agent_reported_time=None,
+                 file_encoding=None):
         super().__init__()
         self.id = str(id)
         self.command = command
@@ -186,6 +188,7 @@ class Link(BaseObject):
         self.output = False
         self.deadman = deadman
         self.agent_reported_time = agent_reported_time
+        self.file_encoding = file_encoding
 
     def __eq__(self, other):
         if isinstance(other, Link):
