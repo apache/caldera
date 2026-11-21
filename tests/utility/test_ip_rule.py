@@ -58,3 +58,28 @@ class TestIPRule:
     async def test_same_subnet(self):
         assert await self.rs._is_ip_rule_match(self.rule, self.fact6)
         assert (not await self.rs.is_fact_allowed(self.fact6))
+
+    async def test_address_rule_does_not_match_longer_address(self):
+        rs = RuleSet(rules=[Rule(trait='host.ip.address', action=RuleAction.DENY, match='127.0.0.1')])
+        assert not await rs.is_fact_allowed(Fact(trait='host.ip.address', value='127.0.0.1'))
+        assert await rs.is_fact_allowed(Fact(trait='host.ip.address', value='127.0.0.10'))
+        assert await rs.is_fact_allowed(Fact(trait='host.ip.address', value='127.0.0.123'))
+
+    async def test_allow_single_address_after_deny_all(self):
+        rs = RuleSet(rules=[Rule(trait='host.ip.address', action=RuleAction.DENY, match='.*'),
+                            Rule(trait='host.ip.address', action=RuleAction.ALLOW, match='10.0.0.1')])
+        assert await rs.is_fact_allowed(Fact(trait='host.ip.address', value='10.0.0.1'))
+        assert not await rs.is_fact_allowed(Fact(trait='host.ip.address', value='10.0.0.10'))
+        assert not await rs.is_fact_allowed(Fact(trait='host.ip.address', value='10.0.0.100'))
+
+    async def test_address_rule_still_denies_network_facts(self):
+        rs = RuleSet(rules=[Rule(trait='host.ip.address', action=RuleAction.DENY, match='10.0.0.1')])
+        assert not await rs.is_fact_allowed(Fact(trait='host.ip.address', value='10.0.0.1/32'))
+        rs = RuleSet(rules=[Rule(trait='host.ip.address', action=RuleAction.DENY, match='10.0.0.0')])
+        assert not await rs.is_fact_allowed(Fact(trait='host.ip.address', value='10.0.0.0/24'))
+
+    async def test_regex_rule_still_applies_to_ip_facts(self):
+        rs = RuleSet(rules=[Rule(trait='host.ip.address', action=RuleAction.DENY, match='.*'),
+                            Rule(trait='host.ip.address', action=RuleAction.ALLOW, match=r'10\.0\.0\.\d+$')])
+        assert await rs.is_fact_allowed(Fact(trait='host.ip.address', value='10.0.0.10'))
+        assert not await rs.is_fact_allowed(Fact(trait='host.ip.address', value='10.0.1.10'))
