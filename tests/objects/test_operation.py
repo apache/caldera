@@ -504,6 +504,40 @@ class TestOperation:
         assert not op.ignored_links
         assert test_link in op.chain
 
+    def test_wait_for_links_completion_link_timeout(self, event_loop, make_test_link, operation_agent, mocker):
+        """A link that never finishes and whose agent stays trusted must be marked TIMEOUT
+        after the per-link deadline (base_timeout + link_timeout) so the planner can continue
+        rather than blocking forever (regression test for issue #3254)."""
+        import asyncio
+        from unittest.mock import MagicMock, AsyncMock
+        from app.utility.base_service import BaseService
+
+        test_agent = operation_agent  # trusted agent
+        # Link is in EXECUTE state (-3) and has no finish set -- it will never complete on its own.
+        test_link = make_test_link(1111, test_agent.paw, Link().states['EXECUTE'])
+        op = Operation(name='test', agents=[test_agent], state='running')
+        op.add_link(test_link)
+
+        # Use near-zero timeouts so the real asyncio.wait_for fires quickly,
+        # which properly cancels the _wait_for_link coroutine (no resource leak).
+        op.base_timeout = 0
+        op.link_timeout = 0.01
+
+        # Provide a stub event service so that setting link.status doesn't raise.
+        mock_event_svc = MagicMock()
+        mock_event_svc.fire_event = AsyncMock()
+
+        async def _block_forever(link, member):
+            """Simulate a link that never completes."""
+            await asyncio.sleep(3600)
+
+        with mocker.patch.object(BaseService, 'get_service', return_value=mock_event_svc):
+            with mocker.patch.object(Operation, '_wait_for_link', side_effect=_block_forever):
+                event_loop.run_until_complete(op.wait_for_links_completion([test_link.id]))
+
+        # The link must now be TIMEOUT so downstream planner steps are unblocked.
+        assert test_link.status == Link().states['TIMEOUT']
+
     def test_update_untrusted_agents_with_trusted(self, operation_agent, ability, adversary):
         operation_agent.trusted = True
         op = Operation(name='test', agents=[operation_agent], adversary=adversary)
