@@ -1,10 +1,31 @@
 /* eslint-disable */
-function populateTechniques(parentId, abilities) {
-    let parent = $('#'+parentId);
-    $(parent).find('#ability-technique-filter').empty().append("<option disabled='disabled' selected>Choose a technique</option>");
+function getAbilityParent(parentId) {
+    return document.getElementById(parentId);
+}
 
-    let tactic = $(parent).find('#ability-tactic-filter').find(':selected').data('tactic');
-    let found = [];
+function getChildById(parent, childId) {
+    return parent ? parent.querySelector(`#${childId}`) : null;
+}
+
+function resetSelect(selectElem, placeholderText) {
+    if (!selectElem) return;
+    selectElem.innerHTML = '';
+    const option = document.createElement('option');
+    option.disabled = true;
+    option.selected = true;
+    option.textContent = placeholderText;
+    selectElem.appendChild(option);
+}
+
+function populateTechniques(parentId, abilities) {
+    const parent = getAbilityParent(parentId);
+    const techniqueFilter = getChildById(parent, 'ability-technique-filter');
+    const tacticFilter = getChildById(parent, 'ability-tactic-filter');
+    resetSelect(techniqueFilter, 'Choose a technique');
+
+    const selectedTactic = tacticFilter?.selectedOptions?.[0];
+    const tactic = selectedTactic?.dataset?.tactic;
+    const found = [];
     abilities.forEach(function(ability) {
         if (ability.tactic.includes(tactic) && !found.includes(ability.technique_id)) {
             found.push(ability.technique_id);
@@ -19,11 +40,14 @@ function populateTechniques(parentId, abilities) {
  * @param {object[]} abilities - Abilities object array
  */
 function populateAbilities(parentId, abilities) {
-    let parent = $('#' + parentId);
+    const parent = getAbilityParent(parentId);
+    const techniqueFilter = getChildById(parent, 'ability-technique-filter');
+    const abilityFilter = getChildById(parent, 'ability-ability-filter');
 
     // Collect abilities matching technique
-    let techniqueAbilities = [];
-    let attack_id = $(parent).find('#ability-technique-filter').find(':selected').data('technique');
+    const techniqueAbilities = [];
+    const selectedTechnique = techniqueFilter?.selectedOptions?.[0];
+    const attack_id = selectedTechnique?.dataset?.technique;
     abilities.forEach(function (ability) {
         if (ability.technique_id === attack_id) {
             techniqueAbilities.push(ability);
@@ -31,33 +55,46 @@ function populateAbilities(parentId, abilities) {
     });
 
     // Clear, then populate the ability dropdown
-    $(parent).find('#ability-ability-filter').empty().append('<option disabled="disabled" selected>' + techniqueAbilities.length + ' abilities</option>');
+    resetSelect(abilityFilter, `${techniqueAbilities.length} abilities`);
     techniqueAbilities.forEach(function (ability) {
         appendAbilityToList(parentId, ability);
     });
 }
 
 function appendTechniqueToList(parentId, tactic, value) {
-    $('#'+parentId).find('#ability-technique-filter').append($("<option></option>")
-        .attr("value", value['technique_id'])
-        .data("technique", value['technique_id'])
-        .text(value['technique_id'] + ' | '+ value['technique_name']));
+    const parent = getAbilityParent(parentId);
+    const techniqueFilter = getChildById(parent, 'ability-technique-filter');
+    if (!techniqueFilter) return;
+
+    const option = document.createElement('option');
+    option.value = value.technique_id;
+    option.dataset.technique = value.technique_id;
+    option.textContent = `${value.technique_id} | ${value.technique_name}`;
+    techniqueFilter.appendChild(option);
 }
 
 function appendAbilityToList(parentId, value) {
-    $('#'+parentId).find('#ability-ability-filter').append($("<option></option>")
-        .attr("value", value['name'])
-        .data("ability", value)
-        .text(value['name']));
+    const parent = getAbilityParent(parentId);
+    const abilityFilter = getChildById(parent, 'ability-ability-filter');
+    if (!abilityFilter) return;
+
+    const option = document.createElement('option');
+    option.value = value.name;
+    option.textContent = value.name;
+    option.abilityData = value;
+    abilityFilter.appendChild(option);
 }
 
 function searchAbilities(parent, abilities){
-    let pElem = $('#'+parent);
-    pElem.find('#ability-technique-filter').empty().append("<option disabled='disabled' selected>All Techniques</option>");;
-    let abList = pElem.find('#ability-ability-filter');
-    abList.empty();
-    let val = pElem.find('#ability-search-filter').val().toLowerCase();
-    let added = [];
+    const parentElem = getAbilityParent(parent);
+    const techniqueFilter = getChildById(parentElem, 'ability-technique-filter');
+    const abilityFilter = getChildById(parentElem, 'ability-ability-filter');
+    const searchFilter = getChildById(parentElem, 'ability-search-filter');
+    resetSelect(techniqueFilter, 'All Techniques');
+    if (abilityFilter) abilityFilter.innerHTML = '';
+
+    const val = (searchFilter?.value || '').toLowerCase();
+    const added = [];
     if (val) {
         abilities.forEach(function(ab) {
             let commandHasSearch = false;
@@ -75,5 +112,11 @@ function searchAbilities(parent, abilities){
             }
         });
     }
-    abList.prepend("<option disabled='disabled' selected>"+added.length+" abilities</option>");
+    if (abilityFilter) {
+        const option = document.createElement('option');
+        option.disabled = true;
+        option.selected = true;
+        option.textContent = `${added.length} abilities`;
+        abilityFilter.prepend(option);
+    }
 }
