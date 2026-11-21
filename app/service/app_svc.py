@@ -254,7 +254,8 @@ class AppService(AppServiceInterface, BaseService):
 
     async def _write_reports(self):
         file_svc = self.get_service('file_svc')
-        r_dir = await file_svc.create_exfil_sub_directory('%s/reports' % self.get_config('reports_dir'))
+        r_dir = os.path.join(self.get_config('reports_dir'), 'reports')
+        os.makedirs(r_dir, exist_ok=True)
         report = json.dumps(dict(self.get_service('contact_svc').report)).encode()
         await file_svc.save_file('contact_reports', report, r_dir)
         for op in await self.get_service('data_svc').locate('operations'):

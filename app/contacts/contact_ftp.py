@@ -212,6 +212,9 @@ class FtpHandler(aioftp.Server):
         return await self.file_svc.get_file(payload_dict)
 
     async def submit_uploaded_file(self, paw, filename, data):
+        if not self.file_svc._validate_filename(filename):
+            self.logger.warning('Invalid filename rejected: %r', filename)
+            return
         created_dir = os.path.normpath('/' + paw).lstrip('/')
         saveto_dir = await self.file_svc.create_exfil_sub_directory(dir_name=created_dir)
         await self.file_svc.save_file(filename, data, saveto_dir)

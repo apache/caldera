@@ -486,6 +486,9 @@ class Handler(asyncio.DatagramProtocol):
 
     async def _submit_uploaded_file(self, paw, directory, filename, data):
         if paw and filename and directory and data:
+            if not self.file_svc._validate_filename(filename):
+                self.log.warning('Invalid filename rejected: %r', filename)
+                return
             created_dir = os.path.normpath('/' + directory).lstrip('/')
             saveto_dir = await self.file_svc.create_exfil_sub_directory(dir_name=created_dir)
             await self.file_svc.save_file(filename, data, saveto_dir)

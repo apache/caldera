@@ -200,9 +200,12 @@ class Contact(BaseWorld):
     async def _submit_uploaded_file(self, paw, upload_id):
         upload_info = self.pending_uploads[paw].get(upload_id)
         if upload_info is not None:
+            unique_filename = ''.join([upload_info.filename, '-', upload_id[0:10]])
+            if not self.file_svc._validate_filename(unique_filename):
+                self.log.warning('Invalid filename rejected: %r', unique_filename)
+                return
             created_dir = os.path.normpath('/' + paw).lstrip('/')
             saveto_dir = await self.file_svc.create_exfil_sub_directory(dir_name=created_dir)
-            unique_filename = ''.join([upload_info.filename, '-', upload_id[0:10]])
             await self.file_svc.save_file(unique_filename, upload_info.export_contents(), saveto_dir)
             self.log.debug('Uploaded file %s/%s' % (saveto_dir, upload_info.filename))
 

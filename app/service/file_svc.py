@@ -76,45 +76,58 @@ class FileSvc(FileServiceInterface, BaseService):
     async def save_file(self, filename, payload, target_dir, encrypt=True, encoding=None):
         if encoding:
             payload = await self._decode_contents(payload, encoding)
-        full_path = os.path.join(target_dir, filename)
-        # Containment check — the resolved final path must not escape its parent.
         # save_file has two legitimate call modes:
         #   (1) target_dir + basename — sink mode, used by agent contact handlers
         #       (DNS, FTP, Gist, Slack) that take filename from upload metadata.
         #   (2) ''  + relative path  — path mode, used by ability/source managers
         #       that assemble paths from sanitised IDs.
-        # Either mode is broken by a filename containing '..'. Resolving the final
-        # path and checking it stays under the parent rejects both classes with one
-        # check, without needing callers to know which mode they are using.
-        parent = os.path.realpath(target_dir) if target_dir else os.path.realpath(os.getcwd())
-        final = os.path.realpath(full_path)
-        if final != parent and not final.startswith(parent + os.sep):
-            raise ValueError('save_file: path %r escapes parent %r (filename=%r, target_dir=%r)'
-                             % (final, parent, filename, target_dir))
+        if target_dir:
+            if not self._validate_filename(filename):
+                raise ValueError('save_file: invalid filename %r' % filename)
+            full_path = os.path.join(target_dir, filename)
+            parent = target_dir
+        else:
+            self._validate_relative_save_path(filename)
+            full_path = filename
+            parent = os.getcwd()
+        self._assert_contained(parent, full_path, label='save_file')
         self._save(full_path, payload, encrypt)
 
     async def create_exfil_sub_directory(self, dir_name):
-        path = os.path.join(self.get_config('exfil_dir'), dir_name)
+        if not dir_name or '\x00' in dir_name:
+            raise ValueError('create_exfil_sub_directory: invalid dir_name %r' % dir_name)
+        exfil_dir = self.get_config('exfil_dir')
+        path = os.path.join(exfil_dir, dir_name)
+        self._assert_contained(exfil_dir, path, label='create_exfil_sub_directory')
         if not os.path.exists(path):
             os.makedirs(path)
         return path
 
     async def create_exfil_operation_directory(self, dir_name, agent_name):
+        if not dir_name or '\x00' in dir_name:
+            raise ValueError('create_exfil_operation_directory: invalid dir_name %r' % dir_name)
+        exfil_dir = self.get_config('exfil_dir')
+        self._assert_contained(exfil_dir, dir_name, label='create_exfil_operation_directory')
         op_list = self.data_svc.ram['operations']
         op_list_filtered = [x for x in op_list if x.state not in x.get_finished_states()]
         special_chars = {ord(c): '_' for c in r':<>"/\|?*'}
         agent_opid = [(x.name.translate(special_chars), '_', x.start.strftime("%Y-%m-%d_%H%M%SZ"))
                       for x in op_list_filtered if agent_name in [y.paw for y in x.agents]]
-        path = os.path.join((dir_name), ''.join(agent_opid[0]))
+        if not agent_opid:
+            raise ValueError('create_exfil_operation_directory: no matching operation for agent %r' % agent_name)
+        subdir = ''.join(agent_opid[0])
+        if '\x00' in subdir:
+            raise ValueError('create_exfil_operation_directory: invalid subdirectory %r' % subdir)
+        path = os.path.join(dir_name, subdir)
+        self._assert_contained(dir_name, path, label='create_exfil_operation_directory')
+        self._assert_contained(exfil_dir, path, label='create_exfil_operation_directory')
         if not os.path.exists(path):
             os.makedirs(path)
         return path
 
     @staticmethod
-    def _validate_filename(name):
-        """Validate that a filename contains only safe characters.
-        Returns True if valid, False otherwise.
-        """
+    def _is_safe_path_component(name):
+        """Structural filename checks (no base64). Used for path-mode save_file parts."""
         if not name or len(name) > 255:
             return False
         if '\x00' in name:
@@ -124,6 +137,38 @@ class FileSvc(FileServiceInterface, BaseService):
         if not _SAFE_FILENAME_RE.fullmatch(name):
             return False
         return True
+
+    @staticmethod
+    def _validate_filename(name):
+        """Validate that a filename contains only safe characters.
+        Returns True if valid, False otherwise.
+        """
+        if not FileSvc._is_safe_path_component(name):
+            return False
+        try:
+            padding = '=' * (-len(name) % 4)
+            decoded_name = base64.b64decode(name + padding, validate=True)
+            if base64.b64encode(decoded_name).decode('ascii').rstrip('=') == name:
+                return False
+        except (binascii.Error, ValueError):
+            pass
+        return True
+
+    @classmethod
+    def _validate_relative_save_path(cls, relpath):
+        if not relpath or os.path.isabs(relpath) or '\x00' in relpath:
+            raise ValueError('save_file: invalid path %r' % relpath)
+        for part in relpath.replace('\\', '/').split('/'):
+            if not part or not cls._is_safe_path_component(part):
+                raise ValueError('save_file: invalid filename component %r in %r' % (part, relpath))
+
+    @staticmethod
+    def _assert_contained(parent, candidate, *, label):
+        parent_real = os.path.realpath(parent)
+        candidate_real = os.path.realpath(candidate)
+        if candidate_real != parent_real and not candidate_real.startswith(parent_real + os.sep):
+            raise ValueError('%s: path %r escapes parent %r' % (label, candidate_real, parent_real))
+        return candidate_real
 
     async def save_multipart_file_upload(self, request, target_dir, encrypt=True):
         try:

@@ -61,7 +61,7 @@ class TestFileService:
             '../../../../tmp/caldera-traversal-canary-3.bin',
         ]
         for evil in traversal_attempts:
-            with pytest.raises(ValueError, match='escapes parent'):
+            with pytest.raises(ValueError, match='invalid filename|escapes parent'):
                 event_loop.run_until_complete(
                     file_svc.save_file(evil, payload, str(tmp_path), encrypt=False)
                 )
@@ -76,6 +76,23 @@ class TestFileService:
         new_dir = event_loop.run_until_complete(file_svc.create_exfil_sub_directory(exfil_dir_name))
         assert os.path.isdir(new_dir)
         os.rmdir(new_dir)
+
+    def test_create_exfil_sub_directory_rejects_escape(self, event_loop, file_svc):
+        escape_name = '../caldera-exfil-escape-canary'
+        abs_escape = '/tmp/caldera-exfil-escape-canary'
+        with pytest.raises(ValueError, match='escapes parent'):
+            event_loop.run_until_complete(file_svc.create_exfil_sub_directory(escape_name))
+        with pytest.raises(ValueError, match='escapes parent'):
+            event_loop.run_until_complete(file_svc.create_exfil_sub_directory(abs_escape))
+        exfil_dir = file_svc.get_config('exfil_dir')
+        assert not os.path.exists(os.path.realpath(os.path.join(exfil_dir, escape_name)))
+        assert not os.path.exists(abs_escape)
+
+    def test_create_exfil_operation_directory_rejects_escape(self, event_loop, file_svc):
+        with pytest.raises(ValueError, match='escapes parent'):
+            event_loop.run_until_complete(
+                file_svc.create_exfil_operation_directory('/tmp', 'abcdef')
+            )
 
     def test_read_write_result_file(self, tmpdir, file_svc):
         link_id = '12345'
