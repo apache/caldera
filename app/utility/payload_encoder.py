@@ -10,7 +10,7 @@ module.
 Additionally, payload_encoder.py can be used from the command-line to add a new encoded payload.
 
 ```
-python /path/to/payload_encoder.py input_file output_file
+python /path/to/payload_encoder.py [-key KEY] input_file output_file
 ```
 
 NOTE: In order for the server to detect the availability of an encoded payload, the payload file's
@@ -44,7 +44,9 @@ def xor_file(input_file, output_file=None, key=None):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-key', default=DEFAULT_KEY)
+    # A str indexes to str, which cannot be XOR'ed with an int. The server path in
+    # file_svc encodes its key the same way before calling xor_bytes.
+    parser.add_argument('-key', default=DEFAULT_KEY, type=lambda key: key.encode())
     parser.add_argument('input')
     parser.add_argument('output')
 
