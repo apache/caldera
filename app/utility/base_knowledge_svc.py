@@ -47,7 +47,7 @@ class BaseKnowledgeService(BaseService):
         matches = await self._get_facts(criteria)
         for match in matches:
             for k, v in updates.items():
-                if getattr(match, k, False):
+                if hasattr(match, k):
                     setattr(match, k, v)
 
     async def _get_facts(self, criteria, restrictions=None):
