@@ -67,6 +67,9 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
 # Install pip requirements
 RUN pip3 install --break-system-packages --no-cache-dir -r requirements.txt
 
+# Install lxml for the debrief plugin. svglib is LGPL 3.0, so it is left out.
+RUN pip3 install --break-system-packages --no-cache-dir --only-binary :all: lxml==6.1.3
+
 # For offline atomic (disable it by default in slim image)
 # Disable atomic if this is not downloaded
 RUN if [ ! -d "/usr/src/app/plugins/atomic/data/atomic-red-team" ] && [ "$VARIANT" = "full" ]; then   \

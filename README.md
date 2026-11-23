@@ -77,7 +77,7 @@ Concise installation steps:
 git clone https://github.com/apache/caldera.git --recursive
 cd caldera
 pip3 install -r requirements.txt
-pip3 install -r requirements-debrief.txt  # optional: PDF reports in the debrief plugin
+pip3 install -r plugins/debrief/requirements.txt  # the debrief plugin, enabled by default
 python3 server.py --insecure --build
 ```
 
@@ -108,12 +108,13 @@ LDAP login is optional. To use it, also install the LDAP requirements, which are
 pip3 install -r requirements-ldap.txt
 ```
 
-The debrief plugin, which `conf/default.yml` enables, needs the `svglib` package to build PDF reports. It is kept in a separate file because it is licensed under the LGPL 3.0:
+Some plugins have their own `requirements.txt`. Install it for each one you enable. The debrief plugin is enabled by default and does not load without its requirements:
 ```Bash
-pip3 install -r requirements-debrief.txt
+pip3 install -r plugins/debrief/requirements.txt
 ```
+This installs `svglib`, which draws the graphs in debrief's PDF reports and is licensed under the LGPL 3.0.
 
-These two commands apply to an installation on the host. The Docker images do not include either set of packages. See [Docker Installation](#docker-installation) for how to add them to an image.
+These commands apply to an installation on the host. The Docker images include neither `ldap3` nor `svglib`. See [Docker Installation](#docker-installation) for how to add them to an image.
 
 Finally, start the server.
 ```Bash
@@ -155,13 +156,13 @@ docker stop <container ID>
 
 There are two variants available, *full* and *slim*. The *slim* variant doesn't include files necessary for the `emu` and `atomic` plugins, which will be downloaded on-demand if the plugins are ever enabled. The *full* variant is suitable for operation in environments without an internet connection. Slim images on GHCR are prefixed with "slim".
 
-The Docker images of version 5.4.0 and later install `requirements.txt` but not the optional `requirements-ldap.txt` and `requirements-debrief.txt`, which LDAP login and the PDF reports of the debrief plugin need. Installing those packages on the host does not add them to a container. To use these features with Docker, build your own image on top of a Caldera image and install the files you need. Both files are in the image's working directory, `/usr/src/app`. Save the following as `Dockerfile.extended`, keeping only the lines you need:
+The Docker images of version 5.4.0 and later leave out two packages that are licensed under the LGPL 3.0: `ldap3`, which LDAP login needs, and `svglib`, which draws the graphs in the PDF reports of the debrief plugin. Without `svglib`, debrief still builds PDF reports, with a note in place of each graph. Installing those packages on the host does not add them to a container. To use these features with Docker, build your own image on top of a Caldera image and install the files you need. Both files are in the image's working directory, `/usr/src/app`. Save the following as `Dockerfile.extended`, keeping only the lines you need:
 ```Dockerfile
 FROM ghcr.io/apache/caldera:latest
 # LDAP login
 RUN pip3 install --break-system-packages --no-cache-dir -r requirements-ldap.txt
-# PDF reports of the debrief plugin
-RUN pip3 install --break-system-packages --no-cache-dir -r requirements-debrief.txt
+# Graphs in the PDF reports of the debrief plugin
+RUN pip3 install --break-system-packages --no-cache-dir -r plugins/debrief/requirements.txt
 ```
 Then build and run it:
 ```sh
