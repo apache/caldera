@@ -108,11 +108,11 @@ LDAP login is optional. To use it, also install the LDAP requirements, which are
 pip3 install -r requirements-ldap.txt
 ```
 
-A plugin that needs Python packages of its own lists them in a `requirements.txt` file in its directory. Install that file for each such plugin you enable. `conf/default.yml` enables the debrief plugin, which does not load without its requirements:
+Some plugins have their own `requirements.txt`. Install it for each one you enable. The debrief plugin is enabled by default and does not load without its requirements:
 ```Bash
 pip3 install -r plugins/debrief/requirements.txt
 ```
-One of them, `svglib`, draws the graphs in debrief's PDF reports and is licensed under the LGPL 3.0.
+This installs `svglib`, which draws the graphs in debrief's PDF reports and is licensed under the LGPL 3.0.
 
 These commands apply to an installation on the host. The Docker images include neither `ldap3` nor `svglib`. See [Docker Installation](#docker-installation) for how to add them to an image.
 

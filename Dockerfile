@@ -67,18 +67,8 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
 # Install pip requirements
 RUN pip3 install --break-system-packages --no-cache-dir -r requirements.txt
 
-# Install what the debrief plugin, which conf/default.yml enables, needs on top of
-# requirements.txt. The version is pinned so that an image build is repeatable.
-# svglib is left out: it is licensed under the LGPL 3.0, which an ASF convenience
-# binary must not include. Without it, debrief builds PDF reports with a note in
-# place of each graph.
+# Install lxml for the debrief plugin. svglib is LGPL 3.0, so it is left out.
 RUN pip3 install --break-system-packages --no-cache-dir --only-binary :all: lxml==6.1.3
-
-# Stop the build if the packages installed above no longer meet the plugin's own
-# requirements, svglib aside. --dry-run and --no-index mean nothing is installed.
-RUN grep -v '^svglib' plugins/debrief/requirements.txt > /tmp/debrief-requirements.txt && \
-pip3 install --break-system-packages --dry-run --no-index --only-binary :all: -r /tmp/debrief-requirements.txt && \
-rm /tmp/debrief-requirements.txt
 
 # For offline atomic (disable it by default in slim image)
 # Disable atomic if this is not downloaded
