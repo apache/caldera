@@ -47,7 +47,7 @@ github:
     allow_update_branch: true
 
   dependabot_alerts: true
-  dependabot_updates: false
+  dependabot_updates: true
 
   # --- OPTIONAL self-serve branch protection (enable once the project agrees on required checks) ----
   protected_branches:
