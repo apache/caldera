@@ -1,14 +1,15 @@
+import importlib.util
 import logging
-import ldap3
 
 from aiohttp import web
 from aiohttp_jinja2 import render_template
-from ldap3.core.exceptions import LDAPAttributeError, LDAPException
 
 from app.service.interfaces.i_login_handler import LoginHandlerInterface
 from app.utility.config_util import verify_hash
 
 HANDLER_NAME = 'Default Login Handler'
+LDAP_PACKAGE_MISSING = ('LDAP login is configured, but the optional "ldap3" package is not installed. '
+                        'Install it with: pip install -r requirements-ldap.txt')
 
 
 class DefaultLoginHandler(LoginHandlerInterface):
@@ -16,6 +17,8 @@ class DefaultLoginHandler(LoginHandlerInterface):
         super().__init__(services, HANDLER_NAME)
         self.log = logging.getLogger('default_login_handler')
         self._ldap_config = self.get_config('ldap')
+        if self._ldap_config and importlib.util.find_spec('ldap3') is None:
+            self.log.error(LDAP_PACKAGE_MISSING)
 
     async def handle_login(self, request, **kwargs):
         data = await request.post()
@@ -55,6 +58,13 @@ class DefaultLoginHandler(LoginHandlerInterface):
         return verify_hash(user.password, password)
 
     async def _ldap_login(self, username, password):
+        try:
+            import ldap3
+            from ldap3.core.exceptions import LDAPException
+        except ImportError:
+            self.log.error(LDAP_PACKAGE_MISSING)
+            return False
+
         server = ldap3.Server(self._ldap_config.get('server'))
         dn = self._ldap_config.get('dn')
         user_attr = self._ldap_config.get('user_attr') or 'uid'
@@ -78,6 +88,8 @@ class DefaultLoginHandler(LoginHandlerInterface):
         return False
 
     async def _ldap_get_group(self, connection, dn, username, user_attr):
+        from ldap3.core.exceptions import LDAPAttributeError
+
         group_attr = self._ldap_config.get('group_attr') or 'objectClass'
         red_group_name = self._ldap_config.get('red_group') or 'red'
 

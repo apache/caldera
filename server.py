@@ -302,13 +302,13 @@ if __name__ == "__main__":
 
     app_svc = AppService(
         application=web.Application(
-            client_max_size=_get_size_mb('client_max_size_mb', 1) * 1024 * 1024,
-            middlewares=[pass_option_middleware]
+            client_max_size=_get_size_mb('client_max_size_mb', 25) * 1024 * 1024,
+            middlewares=[pass_option_middleware, app.api.v2.request_size_middleware]
         )
     )
     app_svc.register_subapp("/api/v2", app.api.v2.make_app(
         app_svc.get_services(),
-        upload_max_size_mb=_get_size_mb('api_upload_max_size_mb', 100)
+        upload_max_size_mb=_get_size_mb('api_upload_max_size_mb', app.api.v2.DEFAULT_UPLOAD_MAX_SIZE_MB)
     ))
     init_swagger_documentation(app_svc.application)
     if args.uiDevHost:

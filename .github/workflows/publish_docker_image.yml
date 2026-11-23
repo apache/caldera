@@ -1,9 +1,25 @@
 name: Create and publish a Docker image
 
+# Docker images are convenience binaries of an ASF release, so they are only
+# published after the release vote has passed. The workflow is started by
+# hand for a final release tag and asks for the vote result link; creating a
+# GitHub release or prerelease does not publish an image.
 on:
-  release:
-    types: [published]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build, for example 5.4.0 (final releases only, no -rc suffix)'
+        required: true
+        type: string
+      vote_result_url:
+        description: 'lists.apache.org link to the [RESULT][VOTE] thread that approved this release'
+        required: true
+        type: string
+      latest:
+        description: 'Also tag the images as latest and slim-latest'
+        required: true
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -20,13 +36,29 @@ jobs:
       packages: write
 
     steps:
+      - name: Check release inputs
+        env:
+          TAG: ${{ inputs.tag }}
+          VOTE_RESULT_URL: ${{ inputs.vote_result_url }}
+        run: |
+          if ! [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::tag must be a final release version such as 5.4.0, got '$TAG'"
+            exit 1
+          fi
+          if ! [[ "$VOTE_RESULT_URL" =~ ^https://lists\.apache\.org/ ]]; then
+            echo "::error::vote_result_url must be a https://lists.apache.org/ link to the vote result"
+            exit 1
+          fi
+          echo "Publishing images for $TAG, approved in $VOTE_RESULT_URL" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Checkout repository
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
         with:
+          ref: refs/tags/${{ inputs.tag }}
           submodules: recursive
 
       - name: Log in to the Container registry
-        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550  # v4.8.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -34,16 +66,20 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker (slim variant)
         id: meta-slim
-        uses: docker/metadata-action@818d4b7b91585d195f67373fd9cb0332e31a7175
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302  # v6.2.0
         with:
+          # Take the ref and commit for the labels from the checked-out
+          # release tag, not from the ref the workflow was started on.
+          context: git
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |
-            latest=auto
-            prefix=slim-,onlatest=true
-            suffix=
+            latest=false
+          tags: |
+            type=raw,value=slim-${{ inputs.tag }}
+            type=raw,value=slim-latest,enable=${{ inputs.latest }}
         
       - name: Build and push Docker image (slim)
-        uses: docker/build-push-action@2eb1c1961a95fc15694676618e422e8ba1d63825
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7.4.0
         with:
           context: .
           push: true
@@ -54,12 +90,18 @@ jobs:
       
       - name: Extract metadata (tags, labels) for Docker (full variant)
         id: meta-full
-        uses: docker/metadata-action@818d4b7b91585d195f67373fd9cb0332e31a7175
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302  # v6.2.0
         with:
+          context: git  # as for the slim variant
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=${{ inputs.tag }}
+            type=raw,value=latest,enable=${{ inputs.latest }}
 
       - name: Build and push Docker image (full)
-        uses: docker/build-push-action@2eb1c1961a95fc15694676618e422e8ba1d63825
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7.4.0
         with:
           context: .
           push: true
