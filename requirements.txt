@@ -14,7 +14,7 @@ myst-parser==2.0.0
 marshmallow==3.26.2
 dirhash==0.2.1
 marshmallow-enum==1.5.1
-reportlab==4.0.4  # debrief
+reportlab==4.5.1  # training
 rich==13.7.0
 lxml==6.1.0  # debrief
 Markdown==3.8.1  # training
