@@ -16,7 +16,6 @@ dirhash==0.2.1
 marshmallow-enum==1.5.1
 reportlab==4.5.1  # training
 rich==13.7.0
-lxml==6.1.0  # debrief
 Markdown==3.8.1  # training
 dnspython==2.9.2
 asyncssh==2.24.1

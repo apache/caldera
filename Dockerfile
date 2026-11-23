@@ -67,6 +67,14 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
 # Install pip requirements
 RUN pip3 install --break-system-packages --no-cache-dir -r requirements.txt
 
+# Install the requirements of the debrief plugin, which conf/default.yml enables.
+# svglib is left out: it is licensed under the LGPL 3.0, which an ASF convenience
+# binary must not include. Without it, debrief builds PDF reports with a note in
+# place of each graph.
+RUN grep -v '^svglib' plugins/debrief/requirements.txt > /tmp/debrief-requirements.txt && \
+pip3 install --break-system-packages --no-cache-dir -r /tmp/debrief-requirements.txt && \
+rm /tmp/debrief-requirements.txt
+
 # For offline atomic (disable it by default in slim image)
 # Disable atomic if this is not downloaded
 RUN if [ ! -d "/usr/src/app/plugins/atomic/data/atomic-red-team" ] && [ "$VARIANT" = "full" ]; then   \
