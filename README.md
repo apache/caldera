@@ -126,6 +126,41 @@ If you prefer to not use the new VueJS UI, revert to Caldera v4.2.0. Correspondi
 
 **Additionally, please note [security recommendations](#Security) for deploying Caldera.**
 
+### Installation diagnostics
+
+From the Caldera directory, run the installation doctor before starting the server
+or when troubleshooting an incomplete installation:
+
+```Bash
+python3 -B -m app.utility.doctor
+python3 -B -m app.utility.doctor -E default --json
+```
+
+The doctor checks the server platform, Python version, installed Python package
+versions, plugin entrypoints, the built Magma interface, and access to the local
+`conf` and data directories. It reports Go availability and, when the interface
+needs building, Node.js and npm availability. Tool versions are displayed; their
+full version constraints are not evaluated.
+
+It runs without importing the server or executing plugin code, and does not
+install dependencies, generate credentials, or change configuration or operation
+data. Missing `packaging` or `PyYAML` is reported without preventing the other
+checks from running. `-B` also prevents Python from writing bytecode caches.
+
+`-E` selects `conf/<environment>.yml`. The default is `local`; if `local.yml` has
+not been generated yet, the doctor checks `default.yml` and reports a warning.
+Credentials and YAML error excerpts are not printed.
+
+Results use `PASS`, `WARN`, and `FAIL`, with suggested actions for problems. The
+exit code is **0** when no checks fail (warnings are allowed), **1** when a check
+fails, and **2** for invalid command arguments. `--json` emits the same checks and
+summary as JSON. Optional LDAP and Debrief dependencies are checked as warnings
+when their features are selected. Requirement files with pip directives, URLs,
+or extras are reported as unchecked rather than installed or followed.
+
+These are installation checks, not a server health test: they do not verify
+network reachability, import every package, or execute abilities.
+
 ## Docker Installation
 
 Local build:
