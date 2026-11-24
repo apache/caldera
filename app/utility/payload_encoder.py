@@ -42,9 +42,21 @@ def xor_file(input_file, output_file=None, key=None):
     return buf
 
 
+def parse_key(value):
+    """Parse a hex string such as '3245 32ca' or '324532ca' into a list of byte values."""
+    try:
+        key = list(bytes.fromhex(value))
+    except ValueError:
+        raise argparse.ArgumentTypeError('key must be a hex string, e.g. 324532ca')
+    if not key:
+        raise argparse.ArgumentTypeError('key must not be empty')
+    return key
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-key', default=DEFAULT_KEY)
+    parser.add_argument('-key', type=parse_key, default=DEFAULT_KEY,
+                        help='XOR key as a hex string (default: %s)' % bytes(DEFAULT_KEY).hex())
     parser.add_argument('input')
     parser.add_argument('output')
 
