@@ -115,22 +115,97 @@ def load_config(root, environment):
     return config, checks
 
 
-def check_tool(name, command, remedy):
+def version_satisfies(version, constraints):
+    """Evaluate numeric runtime ranges; return None for unsupported syntax.
+
+    Supports comparator conjunctions, || alternatives and npm caret ranges.
+    Wildcards, prereleases and other npm syntax are deliberately unchecked.
+    """
+    def numeric(value):
+        if not re.fullmatch(r'\d+\.\d+(?:\.\d+)?', value):
+            raise ValueError
+        return tuple(int(p) for p in value.split('.')) + ((0,) if value.count('.') == 1 else ())
+
+    try:
+        installed = numeric(version)
+        alternatives = []
+        for alternative in constraints.split('||'):
+            matches = []
+            for token in alternative.split():
+                match = re.fullmatch(r'(\^|>=|<=|>|<|=)?(\d+\.\d+(?:\.\d+)?)', token)
+                if not match:
+                    return None
+                operator, target = match.groups()
+                bound = numeric(target)
+                if operator == '^':
+                    if target.count('.') != 2:
+                        return None
+                    index = next((i for i, part in enumerate(bound) if part), 2)
+                    upper = bound[:index] + (bound[index] + 1,) + (0,) * (2 - index)
+                    matches.append(bound <= installed < upper)
+                else:
+                    matches.append({'>=': installed >= bound, '>': installed > bound,
+                                    '<=': installed <= bound, '<': installed < bound,
+                                    '=': installed == bound, None: installed == bound}[operator])
+            if not matches:
+                return None
+            alternatives.append(all(matches))
+        return any(alternatives)
+    except (ValueError, AttributeError, TypeError):
+        return None
+
+
+def node_constraints(root):
+    """Read requirements of the checked-out UI, rather than hardcoding Vite versions."""
+    try:
+        path = root / 'plugins' / 'magma'
+        package = json.loads((path / 'package.json').read_text(encoding='utf-8'))
+        lock = json.loads((path / 'package-lock.json').read_text(encoding='utf-8'))
+        vite = lock['packages']['node_modules/vite']['engines']['node']
+        declared = package.get('engines', {}).get('node')
+        ranges = [vite] + ([declared] if declared is not None else [])
+        return ranges if all(isinstance(r, str) and r for r in ranges) else None
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return None
+
+
+def go_constraints(root):
+    try:
+        module = (root / 'plugins' / 'sandcat' / 'gocat' / 'go.mod').read_text(encoding='utf-8')
+        match = re.search(r'^go\s+(\d+\.\d+(?:\.\d+)?)\s*$', module, re.MULTILINE)
+        return [f'>={match.group(1)}'] if match else None
+    except (OSError, ValueError):
+        return None
+
+
+def check_tool(name, command, remedy, constraints=(), required=False):
     """Probe only fixed version commands, without a shell or network requests."""
     executable = shutil.which(command[0])
     if executable is None:
         return Check(name, 'WARN', f'{name} is not available on PATH.', remedy)
     try:
+        environment = os.environ.copy()
+        if command[0] == 'go':
+            environment.update(GOTOOLCHAIN='local', GOTELEMETRY='off')
         result = subprocess.run(
             [executable, *command[1:]], capture_output=True, text=True,
-            encoding='utf-8', errors='replace', timeout=5, check=False,
+            encoding='utf-8', errors='replace', timeout=5, check=False, env=environment,
         )
     except (OSError, subprocess.TimeoutExpired):
         return Check(name, 'WARN', f'Could not query the {name} version.', remedy)
-    match = re.search(r'\d+\.\d+(?:\.\d+)?', result.stdout)
+    pattern = r'go version go(\d+\.\d+(?:\.\d+)?)(?=\s|$)' if command[0] == 'go' else r'^v?(\d+\.\d+(?:\.\d+)?)(?=\s|$)'
+    match = re.search(pattern, result.stdout)
     if result.returncode or not match:
         return Check(name, 'WARN', f'Could not determine the {name} version.', remedy)
-    return Check(name, 'PASS', f'{name} {match.group(0)} is available.')
+    installed = match.group(1)
+    if constraints is None:
+        return Check(name, 'WARN', f'{name} {installed}: version requirements could not be read.', remedy)
+    outcomes = [version_satisfies(installed, constraint) for constraint in constraints]
+    if None in outcomes:
+        return Check(name, 'WARN', f'{name} {installed}: runtime range syntax is not supported by doctor.', remedy)
+    if not all(outcomes):
+        return Check(name, 'FAIL' if required else 'WARN', f'{name} {installed} does not satisfy {" AND ".join(constraints)}.', remedy)
+    return Check(name, 'PASS', f'{name} {installed} is available' + (f' and satisfies {" AND ".join(constraints)}.' if constraints else '.'))
 
 
 def diagnose(root, environment='local'):
@@ -140,7 +215,7 @@ def diagnose(root, environment='local'):
                         'Supported server platform.' if supported else 'The Caldera server requires Linux or macOS.',
                         '' if supported else 'On Windows, run Caldera and doctor inside WSL or a Linux container.'))
     supported_python = sys.version_info >= (3, 11)
-    checks.append(Check('python', 'PASS' if supported_python else 'FAIL', f'Python {platform.python_version()}.',
+    checks.append(Check('python', 'PASS' if supported_python else 'FAIL', f'Python {platform.python_version()}; required >=3.11.',
                         '' if supported_python else 'Use Python 3.11 or later.'))
     checks.extend(check_requirements(root / 'requirements.txt', root))
     config, config_checks = load_config(root, environment)
@@ -183,9 +258,9 @@ def diagnose(root, environment='local'):
     else:
         checks.append(Check('web-ui', 'FAIL', 'The built Magma web interface is missing.',
                             'After installing dependencies and plugins, run: python3 server.py --build'))
-        checks.append(check_tool('Node.js', ['node', '--version'], 'Install a Node.js version supported by plugins/magma.'))
+        checks.append(check_tool('Node.js', ['node', '--version'], 'Install a Node.js version supported by plugins/magma.', node_constraints(root), True))
         checks.append(check_tool('npm', ['npm', '--version'], 'Install npm to build the Magma web interface.'))
-    checks.append(check_tool('Go', ['go', 'version'], 'Install Go to compile Go-based agents; see the README requirements.'))
+    checks.append(check_tool('Go', ['go', 'version'], 'Install Go meeting the go directive in plugins/sandcat/gocat/go.mod.', go_constraints(root)))
 
     for directory in ('conf', 'data', 'data/results', 'data/payloads'):
         path = root / directory

@@ -139,8 +139,15 @@ python3 -B -m app.utility.doctor -E default --json
 The doctor checks the server platform, Python version, installed Python package
 versions, plugin entrypoints, the built Magma interface, and access to the local
 `conf` and data directories. It reports Go availability and, when the interface
-needs building, Node.js and npm availability. Tool versions are displayed; their
-full version constraints are not evaluated.
+needs building, Node.js and npm availability. Python must be at least 3.11.
+Node.js is checked against Magma's declared engine and the locked Vite engine;
+Go is checked against Sandcat's `gocat/go.mod` go directive. An incompatible Node
+version fails its check; Go incompatibility is a warning because compilation is
+optional. A prebuilt UI does not require Node or npm. Missing or unsupported
+runtime constraints produce a warning. Numeric comparators, comparator
+conjunctions, `||` alternatives and caret ranges are supported; npm's other
+range syntax is left unchecked. Go probes use the local toolchain with telemetry
+disabled. npm's version is displayed without enforcing a version range.
 
 It runs without importing the server or executing plugin code, and does not
 install dependencies, generate credentials, or change configuration or operation
