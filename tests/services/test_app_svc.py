@@ -64,7 +64,7 @@ class TestAppService:
         asyncio.set_event_loop(None)
         try:
             service = AppService(web.Application())
-            assert service.loop is not None
+            assert service.application is not None
         finally:
             asyncio.set_event_loop(previous)
 
