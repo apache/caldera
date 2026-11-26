@@ -126,6 +126,35 @@ If you prefer to not use the new VueJS UI, revert to Caldera v4.2.0. Correspondi
 
 **Additionally, please note [security recommendations](#Security) for deploying Caldera.**
 
+### Validate a main configuration
+
+Check a main server configuration before starting Caldera:
+
+```Bash
+python3 -B -m app.utility.config_validator conf/default.yml
+python3 -B -m app.utility.config_validator conf/local.yml --json
+```
+
+With no file argument, the validator checks `conf/local.yml`. A missing file is
+reported as an error; it does not fall back to a different configuration.
+Text diagnostics use `file:line:column`, identify the field and suggest a fix.
+For example, a boolean or out-of-range `port` is rejected with a recommendation
+to use an integer from 1 to 65535. Missing fields are reported at the document
+start. JSON contains `file`, `valid` and a list of structured `problems`.
+Exit codes are 0 for valid checked fields, 1 for validation/read/dependency errors,
+and 2 for invalid command arguments.
+
+The validator checks YAML syntax, duplicate explicit keys (including nested
+mappings), required `host`, `port`, `plugins` and `users` fields, common string
+settings, positive interval/upload settings, user mappings, plugin names and
+host trait lists. Unknown extension keys and YAML merges are allowed. It accepts
+UTF-8 files up to 1 MiB and uses PyYAML from `requirements.txt`; missing PyYAML
+produces a diagnostic. Credential values and source excerpts are not printed.
+
+Validation does not start the server or change the file. It checks the main
+configuration structure, not plugin-specific schemas, network connectivity or
+credential validity. The server's startup behavior is unchanged.
+
 ## Docker Installation
 
 Local build:
