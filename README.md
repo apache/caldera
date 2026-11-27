@@ -126,6 +126,64 @@ If you prefer to not use the new VueJS UI, revert to Caldera v4.2.0. Correspondi
 
 **Additionally, please note [security recommendations](#Security) for deploying Caldera.**
 
+### Selective Python dependency installation
+
+To install Python dependencies for a smaller plugin set, create and activate a
+virtual environment, then preview the selection from the Caldera directory:
+
+```Bash
+python3 -m venv .calderavenv
+source .calderavenv/bin/activate
+python3 -B -m app.utility.install_dependencies --plugins sandcat,training
+python3 -B -m app.utility.install_dependencies --plugins sandcat,training --install
+```
+
+The first command prints a plan without invoking pip. `--install` requires a
+virtual environment and invokes that interpreter's pip once, passing the core
+and all selected plugin requirement files together. pip's exit code is returned
+on installation failure. On a successful install, subsequent use of a YAML
+configuration can select its enabled plugins:
+
+```Bash
+python3 -B -m app.utility.install_dependencies --config conf/local.yml
+python3 -B -m app.utility.install_dependencies --config conf/local.yml --install
+```
+
+`--config` reads the `plugins` list and requires PyYAML. Explicit `--plugins` works
+before dependencies are installed; `--plugins ""` selects core and Magma only.
+With neither selection option, `conf/default.yml` is used. A missing or malformed
+selected configuration is an error. `--json` provides a machine-readable preview
+and cannot be combined with `--install`. Selection options are mutually exclusive.
+
+Magma is included automatically, matching server behavior. Each selected plugin
+must have its `hook.py` checked out. The installer reads its `requirements.txt`
+without importing the hook. For the current Training and Fieldmanual pins,
+which have no such manifest, it uses `requirements-training.txt` and
+`requirements-fieldmanual.txt`; a plugin-owned manifest takes precedence once
+available. Plugins without a requirements manifest are listed explicitly.
+
+Use the same enabled-plugin configuration when starting the server. The server
+tries to load every plugin directory by default, so pass its `--plugins` option
+with the displayed list (including Magma) to restrict loading. For example, with
+`conf/exercise.yml` enabling Sandcat and Training:
+
+```Bash
+python3 server.py -E exercise --plugins magma,sandcat,training
+```
+
+This command installs Python packages. The existing frontend/Go build steps and
+optional LDAP installation still apply. Use a fresh virtual environment for a
+minimal installation; existing packages are retained. Requirement files are
+trusted installation inputs, just as when passed directly to pip.
+
+`requirements-core.txt` excludes plugin-only dependencies. The original
+`pip install -r requirements.txt` command remains the full legacy installation,
+including the same pins through the core, Training and Fieldmanual files and
+the Debrief lxml pin. Docker, documentation builds and the existing dependency
+audit continue using this full entrypoint. Plugin-owned manifests may declare
+additional dependencies beyond this legacy set. This opt-in installer does not
+change which packages the default Docker image includes.
+
 ## Docker Installation
 
 Local build:
