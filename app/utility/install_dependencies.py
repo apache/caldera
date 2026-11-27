@@ -36,7 +36,7 @@ def configured_plugins(path):
 
 
 def selection(names):
-    if not isinstance(names, list) or any(not isinstance(p, str) or not re.fullmatch(r'[A-Za-z0-9_][A-Za-z0-9_-]*', p) for p in names):
+    if not isinstance(names, list) or any(not isinstance(p, str) or not re.fullmatch(r'\w[\w-]*', p, flags=re.ASCII) for p in names):
         raise ValueError('Plugin selection must be a list of directory names, without paths or empty names.')
     return tuple(sorted(set(names) | {'magma'}))
 

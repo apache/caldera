@@ -58,7 +58,7 @@ class TestSelectiveDependencies(unittest.TestCase):
         self.assertNotIn('requirements-training.txt', plan.files)
 
     def test_invalid_names_and_types(self):
-        for value in (None, 'training', [False], ['../outside'], ['/absolute'], [''], ['--option'], ['a/b']):
+        for value in (None, 'training', [False], ['../outside'], ['/absolute'], [''], ['--option'], ['a/b'], ['ș'], ['aș']):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 installer.make_plan(self.root, value)
 
