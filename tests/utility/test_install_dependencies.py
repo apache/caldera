@@ -154,7 +154,8 @@ class TestSelectiveDependencies(unittest.TestCase):
             self.assertEqual(raised.exception.code, 2)
 
     def test_real_bootstrap_preview_without_site_packages(self):
-        result = subprocess.run([sys.executable, '-I', '-S', '-B', installer.__file__, '--plugins', '', '--json'],
+        script = self.write('app/utility/install_dependencies.py', Path(installer.__file__).read_text(encoding='utf-8'))
+        result = subprocess.run([sys.executable, '-I', '-S', '-B', str(script), '--plugins', '', '--json'],
                                 capture_output=True, text=True, timeout=20, check=False)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout)['files'], ['requirements-core.txt'])
