@@ -1,0 +1,3 @@
+# Compatibility manifest until Training declares its own requirements.txt.
+reportlab==4.0.4
+Markdown==3.8.1
